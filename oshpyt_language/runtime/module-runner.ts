@@ -1,9 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { dirname, extname, resolve } from "node:path";
 
+import { Interpreter, RuntimeError } from "./interpreter";
 import { lex } from "./lexer";
 import { Parser } from "./parser";
-import { Interpreter, RuntimeError } from "./interpreter";
 import type { ImportNode, Node } from "./parser";
 
 export class ModuleRunner {
@@ -13,10 +13,13 @@ export class ModuleRunner {
   constructor(private readonly interpreter = new Interpreter()) {}
 
   async run(entryFile: string): Promise<void> {
-    await this.load(resolve(entryFile));
+    await this.load(resolve(entryFile), this.interpreter);
   }
 
-  private async load(filePath: string): Promise<void> {
+  private async load(
+    filePath: string,
+    targetInterpreter: Interpreter
+  ): Promise<void> {
     if (this.loaded.has(filePath)) {
       return;
     }
@@ -26,7 +29,9 @@ export class ModuleRunner {
     }
 
     if (extname(filePath) !== ".oshpyt") {
-      throw new RuntimeError(`Imports must reference .oshpyt files: ${filePath}`);
+      throw new RuntimeError(
+        `Imports must reference .oshpyt files: ${filePath}`
+      );
     }
 
     this.loading.add(filePath);
@@ -40,18 +45,51 @@ export class ModuleRunner {
       );
 
       for (const imported of imports) {
-        const importedPath = resolve(dirname(filePath), imported.path);
-        await this.load(importedPath);
+        await this.loadImport(filePath, imported, targetInterpreter);
       }
 
-      const executableNodes = nodes.filter((node) => node.type !== "Import");
+      const executableNodes: Node[] = nodes.filter(
+        (node) => node.type !== "Import"
+      );
 
-      this.interpreter.register(executableNodes, filePath);
-      await this.interpreter.executeTopLevelCalls(executableNodes);
+      targetInterpreter.register(executableNodes, filePath);
+      await targetInterpreter.executeTopLevelCalls(executableNodes);
 
       this.loaded.add(filePath);
     } finally {
       this.loading.delete(filePath);
     }
+  }
+
+  private async loadImport(
+    importingFile: string,
+    imported: ImportNode,
+    targetInterpreter: Interpreter
+  ): Promise<void> {
+    const importedPath = resolve(dirname(importingFile), imported.path);
+
+    if (imported.alias === undefined) {
+      await this.load(importedPath, targetInterpreter);
+      return;
+    }
+
+    if (this.loading.has(importedPath)) {
+      throw new RuntimeError(`Circular import detected: ${importedPath}`);
+    }
+
+    if (extname(importedPath) !== ".oshpyt") {
+      throw new RuntimeError(
+        `Imports must reference .oshpyt files: ${importedPath}`
+      );
+    }
+
+    const moduleInterpreter = new Interpreter();
+
+    await this.load(importedPath, moduleInterpreter);
+
+    targetInterpreter.registerNamespace(
+      imported.alias,
+      moduleInterpreter.getFunctions()
+    );
   }
 }

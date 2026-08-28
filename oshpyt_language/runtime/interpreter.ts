@@ -182,6 +182,7 @@ export class Interpreter {
   private static readonly MAX_WHILE_ITERATIONS = 10_000;
 
   private readonly functions = new Map<string, DefineNode>();
+  private readonly namespaces = new Map<string, Map<string, DefineNode>>();
   private readonly global = new Environment();
 
   constructor(
@@ -227,28 +228,45 @@ export class Interpreter {
     }
   }
 
+  getFunctions(): Map<string, DefineNode> {
+    return new Map(this.functions);
+  }
+
+  registerNamespace(
+    alias: string,
+    functions: Map<string, DefineNode>
+  ): void {
+    if (this.namespaces.has(alias)) {
+      throw new RuntimeError(`Import alias "${alias}" already exists.`);
+    }
+
+    this.namespaces.set(alias, new Map(functions));
+  }
+
   async executeTopLevelCalls(nodes: Node[]): Promise<void> {
     for (const node of nodes) {
       if (node.type !== "Define") {
-        await this.executeStatement(node, this.global);
+        await this.executeStatement(node, this.global, this.functions);
       }
     }
   }
 
   private async executeBlock(
     statements: StatementNode[],
-    parentEnvironment: Environment
+    parentEnvironment: Environment,
+    functions: Map<string, DefineNode>
   ): Promise<void> {
     const blockEnvironment = new Environment(parentEnvironment);
 
     for (const statement of statements) {
-      await this.executeStatement(statement, blockEnvironment);
+      await this.executeStatement(statement, blockEnvironment, functions);
     }
   }
 
   private async executeStatement(
     node: StatementNode,
-    environment: Environment
+    environment: Environment,
+    functions: Map<string, DefineNode>
   ): Promise<void> {
     switch (node.type) {
       case "Create":
@@ -256,15 +274,20 @@ export class Interpreter {
         return;
 
       case "Set":
-        environment.set(node.name, await this.evaluate(node.value, environment));
+        environment.set(
+          node.name,
+          await this.evaluate(node.value, environment, functions)
+        );
         return;
 
       case "Call":
-        await this.executeCall(node, environment);
+        await this.executeCall(node, environment, functions);
         return;
 
       case "Return":
-        throw new ReturnSignal(await this.evaluate(node.value, environment));
+        throw new ReturnSignal(
+          await this.evaluate(node.value, environment, functions)
+        );
 
       case "Break":
         throw new BreakSignal();
@@ -273,7 +296,11 @@ export class Interpreter {
         throw new ContinueSignal();
 
       case "When": {
-        const condition = await this.evaluate(node.condition, environment);
+        const condition = await this.evaluate(
+          node.condition,
+          environment,
+          functions
+        );
 
         if (typeof condition !== "boolean") {
           throw new RuntimeError(
@@ -284,14 +311,14 @@ export class Interpreter {
         const branch = condition ? node.thenBranch : node.elseBranch;
 
         if (branch) {
-          await this.executeBlock(branch, environment);
+          await this.executeBlock(branch, environment, functions);
         }
 
         return;
       }
 
       case "Repeat": {
-        const count = await this.evaluate(node.count, environment);
+        const count = await this.evaluate(node.count, environment, functions);
 
         if (typeof count !== "number") {
           throw new RuntimeError(
@@ -307,7 +334,7 @@ export class Interpreter {
 
         for (let index = 0; index < count; index += 1) {
           try {
-            await this.executeBlock(node.body, environment);
+            await this.executeBlock(node.body, environment, functions);
           } catch (error) {
             if (error instanceof BreakSignal) {
               return;
@@ -328,7 +355,11 @@ export class Interpreter {
         let iterations = 0;
 
         while (true) {
-          const condition = await this.evaluate(node.condition, environment);
+          const condition = await this.evaluate(
+            node.condition,
+            environment,
+            functions
+          );
 
           if (typeof condition !== "boolean") {
             throw new RuntimeError(
@@ -349,7 +380,7 @@ export class Interpreter {
           iterations += 1;
 
           try {
-            await this.executeBlock(node.body, environment);
+            await this.executeBlock(node.body, environment, functions);
           } catch (error) {
             if (error instanceof BreakSignal) {
               return;
@@ -368,11 +399,24 @@ export class Interpreter {
 
   private async executeCall(
     node: CallNode,
-    environment: Environment
+    environment: Environment,
+    functions: Map<string, DefineNode>
   ): Promise<void> {
+    if (node.namespace !== undefined) {
+      await this.callNamespacedFunction(
+        node.namespace,
+        node.name,
+        node.args,
+        node.location.line,
+        node.location.col,
+        environment
+      );
+      return;
+    }
+
     if (node.name === "Print") {
       this.expectStatementArguments(node, 1);
-      console.log(await this.evaluate(node.args[0], environment));
+      console.log(await this.evaluate(node.args[0], environment, functions));
       return;
     }
 
@@ -388,7 +432,11 @@ export class Interpreter {
       }
 
       const list = environment.getMutableList(listArgument.name);
-      list.push(this.cloneValue(await this.evaluate(node.args[1], environment)));
+
+      list.push(
+        this.cloneValue(await this.evaluate(node.args[1], environment, functions))
+      );
+
       return;
     }
 
@@ -397,13 +445,15 @@ export class Interpreter {
       node.args,
       node.location.line,
       node.location.col,
-      environment
+      environment,
+      functions
     );
   }
 
   private async evaluate(
     expression: Expr,
-    environment: Environment
+    environment: Environment,
+    functions: Map<string, DefineNode>
   ): Promise<RuntimeValue> {
     switch (expression.type) {
       case "StringLiteral":
@@ -415,23 +465,29 @@ export class Interpreter {
         const values: RuntimeValue[] = [];
 
         for (const element of expression.elements) {
-          values.push(this.cloneValue(await this.evaluate(element, environment)));
+          values.push(
+            this.cloneValue(await this.evaluate(element, environment, functions))
+          );
         }
 
         return values;
       }
 
       case "BuiltinCall":
-        return this.evaluateBuiltinCall(expression, environment);
+        return this.evaluateBuiltinCall(expression, environment, functions);
 
       case "FunctionCall":
-        return this.evaluateFunctionCall(expression, environment);
+        return this.evaluateFunctionCall(expression, environment, functions);
 
       case "Identifier":
         return environment.get(expression.name);
 
       case "Unary": {
-        const operand = await this.evaluate(expression.operand, environment);
+        const operand = await this.evaluate(
+          expression.operand,
+          environment,
+          functions
+        );
 
         if (expression.operator === "not") {
           if (typeof operand !== "boolean") {
@@ -453,29 +509,84 @@ export class Interpreter {
       }
 
       case "Binary":
-        return this.evaluateBinary(expression, environment);
+        return this.evaluateBinary(expression, environment, functions);
     }
   }
 
   private async evaluateFunctionCall(
     expression: FunctionCallExpr,
-    environment: Environment
+    environment: Environment,
+    functions: Map<string, DefineNode>
   ): Promise<RuntimeValue> {
-    const value = await this.callUserFunction(
-      expression.name,
-      expression.args,
-      expression.location.line,
-      expression.location.col,
-      environment
-    );
+    const value =
+      expression.namespace === undefined
+        ? await this.callUserFunction(
+            expression.name,
+            expression.args,
+            expression.location.line,
+            expression.location.col,
+            environment,
+            functions
+          )
+        : await this.callNamespacedFunction(
+            expression.namespace,
+            expression.name,
+            expression.args,
+            expression.location.line,
+            expression.location.col,
+            environment
+          );
 
     if (value === undefined) {
+      const fullName =
+        expression.namespace === undefined
+          ? expression.name
+          : `${expression.namespace}.${expression.name}`;
+
       throw new RuntimeError(
-        `Function "${expression.name}" did not Return a value at ${expression.location.line}:${expression.location.col}.`
+        `Function "${fullName}" did not Return a value at ${expression.location.line}:${expression.location.col}.`
       );
     }
 
     return value;
+  }
+
+  private async callNamespacedFunction(
+    namespace: string,
+    name: string,
+    args: Expr[],
+    line: number,
+    col: number,
+    callerEnvironment: Environment
+  ): Promise<RuntimeValue | undefined> {
+    const functions = this.namespaces.get(namespace);
+
+    if (!functions) {
+      throw new RuntimeError(`Undefined namespace "${namespace}" at ${line}:${col}.`);
+    }
+
+    const definition = functions.get(name);
+
+    if (!definition) {
+      throw new RuntimeError(
+        `Undefined function "${namespace}.${name}" at ${line}:${col}.`
+      );
+    }
+
+    if (args.length !== definition.params.length) {
+      throw new RuntimeError(
+        `Function "${namespace}.${name}" expects ${definition.params.length} argument(s), received ${args.length} at ${line}:${col}.`
+      );
+    }
+
+    return this.callUserFunction(
+      name,
+      args,
+      line,
+      col,
+      callerEnvironment,
+      functions
+    );
   }
 
   private async callUserFunction(
@@ -483,9 +594,10 @@ export class Interpreter {
     args: Expr[],
     line: number,
     col: number,
-    callerEnvironment: Environment
+    callerEnvironment: Environment,
+    functions: Map<string, DefineNode>
   ): Promise<RuntimeValue | undefined> {
-    const definition = this.functions.get(name);
+    const definition = functions.get(name);
 
     if (!definition) {
       throw new RuntimeError(`Undefined function "${name}" at ${line}:${col}.`);
@@ -500,7 +612,9 @@ export class Interpreter {
     const argumentValues: RuntimeValue[] = [];
 
     for (const argument of args) {
-      argumentValues.push(await this.evaluate(argument, callerEnvironment));
+      argumentValues.push(
+        await this.evaluate(argument, callerEnvironment, functions)
+      );
     }
 
     const local = new Environment(callerEnvironment);
@@ -511,7 +625,7 @@ export class Interpreter {
 
     try {
       for (const statement of definition.body) {
-        await this.executeStatement(statement, local);
+        await this.executeStatement(statement, local, functions);
       }
     } catch (error) {
       if (error instanceof ReturnSignal) {
@@ -526,12 +640,17 @@ export class Interpreter {
 
   private async evaluateBuiltinCall(
     expression: BuiltinCallExpr,
-    environment: Environment
+    environment: Environment,
+    functions: Map<string, DefineNode>
   ): Promise<RuntimeValue> {
     if (expression.name === "Length") {
       this.expectExpressionArguments(expression, 1);
 
-      const list = await this.evaluate(expression.args[0], environment);
+      const list = await this.evaluate(
+        expression.args[0],
+        environment,
+        functions
+      );
 
       if (!Array.isArray(list)) {
         throw new RuntimeError(
@@ -545,7 +664,11 @@ export class Interpreter {
     if (expression.name === "Get") {
       this.expectExpressionArguments(expression, 2);
 
-      const list = await this.evaluate(expression.args[0], environment);
+      const list = await this.evaluate(
+        expression.args[0],
+        environment,
+        functions
+      );
 
       if (!Array.isArray(list)) {
         throw new RuntimeError(
@@ -556,7 +679,8 @@ export class Interpreter {
       const index = await this.evaluateListIndex(
         expression.args[1],
         environment,
-        expression
+        expression,
+        functions
       );
 
       if (index >= list.length) {
@@ -592,15 +716,20 @@ export class Interpreter {
 
     if (expression.name === "ToString") {
       this.expectExpressionArguments(expression, 1);
+
       return this.valueToString(
-        await this.evaluate(expression.args[0], environment)
+        await this.evaluate(expression.args[0], environment, functions)
       );
     }
 
     if (expression.name === "ToNumber") {
       this.expectExpressionArguments(expression, 1);
 
-      const value = await this.evaluate(expression.args[0], environment);
+      const value = await this.evaluate(
+        expression.args[0],
+        environment,
+        functions
+      );
 
       if (typeof value !== "string") {
         throw new RuntimeError(
@@ -621,15 +750,20 @@ export class Interpreter {
 
     if (expression.name === "TypeOf") {
       this.expectExpressionArguments(expression, 1);
+
       return this.getTypeName(
-        await this.evaluate(expression.args[0], environment)
+        await this.evaluate(expression.args[0], environment, functions)
       );
     }
 
     if (expression.name === "Input") {
       this.expectExpressionArguments(expression, 1);
 
-      const prompt = await this.evaluate(expression.args[0], environment);
+      const prompt = await this.evaluate(
+        expression.args[0],
+        environment,
+        functions
+      );
 
       if (typeof prompt !== "string") {
         throw new RuntimeError(
@@ -667,9 +801,10 @@ export class Interpreter {
   private async evaluateListIndex(
     expression: Expr,
     environment: Environment,
-    builtin: BuiltinCallExpr
+    builtin: BuiltinCallExpr,
+    functions: Map<string, DefineNode>
   ): Promise<number> {
-    const value = await this.evaluate(expression, environment);
+    const value = await this.evaluate(expression, environment, functions);
 
     if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
       throw new RuntimeError(
@@ -682,9 +817,10 @@ export class Interpreter {
 
   private async evaluateBinary(
     expression: Extract<Expr, { type: "Binary" }>,
-    environment: Environment
+    environment: Environment,
+    functions: Map<string, DefineNode>
   ): Promise<RuntimeValue> {
-    const left = await this.evaluate(expression.left, environment);
+    const left = await this.evaluate(expression.left, environment, functions);
 
     if (expression.operator === "and") {
       if (typeof left !== "boolean") {
@@ -697,7 +833,11 @@ export class Interpreter {
         return false;
       }
 
-      const right = await this.evaluate(expression.right, environment);
+      const right = await this.evaluate(
+        expression.right,
+        environment,
+        functions
+      );
 
       if (typeof right !== "boolean") {
         throw new RuntimeError(
@@ -719,18 +859,22 @@ export class Interpreter {
         return true;
       }
 
-      const right = await this.evaluate(expression.right, environment);
+      const right = await this.evaluate(
+        expression.right,
+        environment,
+        functions
+      );
 
       if (typeof right !== "boolean") {
         throw new RuntimeError(
-          `Operator "or" expects Boolean operands at ${expression.location.line}:${expression.location.location.col}.`
+          `Operator "or" expects Boolean operands at ${expression.location.line}:${expression.location.col}.`
         );
       }
 
       return right;
     }
 
-    const right = await this.evaluate(expression.right, environment);
+    const right = await this.evaluate(expression.right, environment, functions);
 
     if (expression.operator === "+") {
       if (typeof left === "number" && typeof right === "number") {
@@ -817,7 +961,9 @@ export class Interpreter {
     return String(value);
   }
 
-  private getTypeName(value: RuntimeValue): "String" | "Number" | "Boolean" | "List" {
+  private getTypeName(
+    value: RuntimeValue
+  ): "String" | "Number" | "Boolean" | "List" {
     if (Array.isArray(value)) {
       return "List";
     }

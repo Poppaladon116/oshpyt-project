@@ -13,6 +13,7 @@ export type TokenType =
   | "MINUS"
   | "STAR"
   | "SLASH"
+  | "DOT"
   | "LPAREN"
   | "RPAREN"
   | "LBRACE"
@@ -96,6 +97,13 @@ export function lex(source: string): Token[] {
 
     if (char === ",") {
       tokens.push({ type: "COMMA", value: char, line, col });
+      pos += 1;
+      col += 1;
+      continue;
+    }
+
+    if (char === ".") {
+      tokens.push({ type: "DOT", value: char, line, col });
       pos += 1;
       col += 1;
       continue;
