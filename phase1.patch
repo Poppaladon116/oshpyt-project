@@ -1,0 +1,429 @@
+--- oshpyt_language/runtime/parser.ts
++++ oshpyt_language/runtime/parser.ts
+@@ -24,14 +24,30 @@
+       location: SourceLocation;
+     };
+ 
++export type CreateNode = {
++  type: "Create";
++  name: string;
++  typeName: "String" | "Number";
++  location: SourceLocation;
++};
++
++export type SetNode = {
++  type: "Set";
++  name: string;
++  value: Expr;
++  location: SourceLocation;
++};
++
+ export type CallNode = {
+   type: "Call";
+   name: string;
+   args: Expr[];
+   location: SourceLocation;
+ };
+ 
++export type StatementNode = CallNode | CreateNode | SetNode;
++
+ export type DefineNode = {
+   type: "Define";
+   name: string;
+   params: string[];
+-  body: CallNode[];
++  body: StatementNode[];
+   location: SourceLocation;
+ };
+ 
+-export type Node = DefineNode | CallNode;
++export type Node = DefineNode | StatementNode;
+ 
+ export class Parser {
+   private pos = 0;
+@@ -43,6 +59,10 @@
+     while (!this.check("EOF")) {
+       if (this.checkIdentifier("Define")) {
+         nodes.push(this.parseDefine());
++      } else if (this.checkIdentifier("Create")) {
++        nodes.push(this.parseCreate());
++      } else if (this.checkIdentifier("Set")) {
++        nodes.push(this.parseSet());
+       } else if (this.checkIdentifier("Call")) {
+         nodes.push(this.parseCall());
+       } else {
+         const token = this.peek();
+@@ -81,19 +101,23 @@
+     this.expect("RPAREN");
+     this.expect("LBRACE");
+ 
+-    const body: CallNode[] = [];
++    const body: StatementNode[] = [];
+ 
+     while (!this.check("RBRACE")) {
+       if (this.check("EOF")) {
+         throw new ParserError(
+           `Unterminated function "${name}" beginning at ${start.line}:${start.col}.`
+         );
+       }
+ 
+-      if (!this.checkIdentifier("Call")) {
++      if (this.checkIdentifier("Create")) {
++        body.push(this.parseCreate());
++      } else if (this.checkIdentifier("Set")) {
++        body.push(this.parseSet());
++      } else if (this.checkIdentifier("Call")) {
++        body.push(this.parseCall());
++      } else {
+         const token = this.peek();
+         throw new ParserError(
+-          `Only Call statements are supported inside functions at ${token.line}:${token.col}.`
++          `Expected Create, Set, or Call at ${token.line}:${token.col}, found "${token.value}".`
+         );
+       }
+-
+-      body.push(this.parseCall());
+     }
+ 
+     this.expect("RBRACE");
+@@ -107,6 +131,39 @@
+     };
+   }
+ 
++  private parseCreate(): CreateNode {
++    const start = this.expectIdentifier("Create");
++    const name = this.expect("IDENT").value;
++
++    this.expectIdentifier("as");
++    const typeToken = this.expect("IDENT");
++
++    if (typeToken.value !== "String" && typeToken.value !== "Number") {
++      throw new ParserError(
++        `Expected type "String" or "Number" at ${typeToken.line}:${typeToken.col}, found "${typeToken.value}".`
++      );
++    }
++
++    return {
++      type: "Create",
++      name,
++      typeName: typeToken.value,
++      location: this.location(start),
++    };
++  }
++
++  private parseSet(): SetNode {
++    const start = this.expectIdentifier("Set");
++    const name = this.expect("IDENT").value;
++    this.expectIdentifier("to");
++    const value = this.parseExpression();
++
++    return {
++      type: "Set",
++      name,
++      value,
++      location: this.location(start),
++    };
+   }
+ 
+   private parseCall(): CallNode {
+     const start = this.expectIdentifier("Call");
+     const name = this.expect("IDENT").value;
+--- oshpyt_language/runtime/interpreter.ts
++++ oshpyt_language/runtime/interpreter.ts
+@@ -1,32 +1,78 @@
+-import type { CallNode, DefineNode, Expr, Node } from "./parser";
++import type { CallNode, DefineNode, Expr, Node, StatementNode } from "./parser";
+ 
+ export type RuntimeValue = string | number;
+ 
+ export class RuntimeError extends Error {}
+ 
++type VariableSlot = {
++  typeName: "String" | "Number" | "Any";
++  value?: RuntimeValue;
++  initialized: boolean;
++};
++
+ class Environment {
+-  private readonly values = new Map<string, RuntimeValue>();
++  private readonly values = new Map<string, VariableSlot>();
+ 
+   constructor(private readonly parent?: Environment) {}
+ 
+-  define(name: string, value: RuntimeValue): void {
++  declare(name: string, typeName: "String" | "Number"): void {
+     if (this.values.has(name)) {
+       throw new RuntimeError(`Variable "${name}" already exists in this scope.`);
+     }
+ 
+-    this.values.set(name, value);
++    this.values.set(name, {
++      typeName,
++      initialized: false,
++    });
++  }
++
++  define(name: string, value: RuntimeValue, typeName: "String" | "Number" | "Any" = "Any"): void {
++    if (this.values.has(name)) {
++      throw new RuntimeError(`Variable "${name}" already exists in this scope.`);
++    }
++
++    this.values.set(name, {
++      typeName,
++      value,
++      initialized: true,
++    });
++  }
++
++  set(name: string, value: RuntimeValue): void {
++    const slot = this.values.get(name);
++
++    if (slot !== undefined) {
++      this.checkType(slot.typeName, value, name);
++      slot.value = value;
++      slot.initialized = true;
++      return;
++    }
++
++    if (this.parent) {
++      this.parent.set(name, value);
++      return;
++    }
++
++    throw new RuntimeError(`Undeclared variable "${name}".`);
+   }
+ 
+   get(name: string): RuntimeValue {
+-    const value = this.values.get(name);
++    const slot = this.values.get(name);
+ 
+-    if (value !== undefined) {
+-      return value;
++    if (slot !== undefined) {
++      if (!slot.initialized || slot.value === undefined) {
++        throw new RuntimeError(`Variable "${name}" is used before being initialized.`);
++      }
++
++      return slot.value;
+     }
+ 
+     if (this.parent) {
+       return this.parent.get(name);
+     }
+ 
+     throw new RuntimeError(`Undefined variable "${name}".`);
+   }
++
++  private checkType(typeName: string, value: RuntimeValue, name: string): void {
++    if (typeName === "String" && typeof value !== "string") {
++      throw new RuntimeError(`Type mismatch: variable "${name}" expects String, received Number.`);
++    }
++
++    if (typeName === "Number" && typeof value !== "number") {
++      throw new RuntimeError(`Type mismatch: variable "${name}" expects Number, received String.`);
++    }
++  }
+ }
+ 
+ export class Interpreter {
+@@ -48,15 +74,31 @@
+     }
+   }
+ 
+   executeTopLevelCalls(nodes: Node[]): void {
+     for (const node of nodes) {
+-      if (node.type === "Call") {
+-        this.executeCall(node, this.global);
++      if (node.type !== "Define") {
++        this.executeStatement(node, this.global);
+       }
+     }
+   }
+ 
++  private executeStatement(node: StatementNode, environment: Environment): void {
++    switch (node.type) {
++      case "Create":
++        environment.declare(node.name, node.typeName);
++        break;
++
++      case "Set": {
++        const value = this.evaluate(node.value, environment);
++        environment.set(node.name, value);
++        break;
++      }
++
++      case "Call":
++        this.executeCall(node, environment);
++        break;
++    }
++  }
++
+   private executeCall(node: CallNode, callerEnvironment: Environment): void {
+     if (node.name === "Print") {
+       if (node.args.length !== 1) {
+@@ -89,7 +131,7 @@
+     }
+ 
+     for (const statement of definition.body) {
+-      this.executeCall(statement, local);
++      this.executeStatement(statement, local);
+     }
+   }
+--- oshpyt_language/runtime/tests/runtime.test.ts
++++ oshpyt_language/runtime/tests/runtime.test.ts
+@@ -107,3 +107,133 @@
+ test("rejects an unsupported character", () => {
+   expect(() => lex("Call Print(@)")).toThrow(LexerError);
+ });
++
++test("global string variable", () => {
++  const program = parse(`
++    Create greeting as String
++    Set greeting to "Hello World"
++    Call Print(greeting)
++  `);
++
++  interpreter.register(program);
++  interpreter.executeTopLevelCalls(program);
++
++  expect(logSpy).toHaveBeenCalledWith("Hello World");
++});
++
++test("global number variable", () => {
++  const program = parse(`
++    Create count as Number
++    Set count to 42
++    Call Print(count)
++  `);
++
++  interpreter.register(program);
++  interpreter.executeTopLevelCalls(program);
++
++  expect(logSpy).toHaveBeenCalledWith(42);
++});
++
++test("local function variable", () => {
++  const program = parse(`
++    Define Test() {
++      Create localVal as String
++      Set localVal to "inside function"
++      Call Print(localVal)
++    }
++
++    Call Test()
++  `);
++
++  interpreter.register(program);
++  interpreter.executeTopLevelCalls(program);
++
++  expect(logSpy).toHaveBeenCalledWith("inside function");
++});
++
++test("local variable shadowing", () => {
++  const program = parse(`
++    Create message as String
++    Set message to "global"
++
++    Define Shadow() {
++      Create message as String
++      Set message to "local"
++      Call Print(message)
++    }
++
++    Call Shadow()
++    Call Print(message)
++  `);
++
++  interpreter.register(program);
++  interpreter.executeTopLevelCalls(program);
++
++  expect(logSpy).toHaveBeenNthCalledWith(1, "local");
++  expect(logSpy).toHaveBeenNthCalledWith(2, "global");
++});
++
++test("duplicate Create", () => {
++  const program = parse(`
++    Create duplicate as String
++    Create duplicate as String
++  `);
++
++  interpreter.register(program);
++
++  expect(() => interpreter.executeTopLevelCalls(program)).toThrow(
++    /Variable "duplicate" already exists in this scope/
++  );
++});
++
++test("undeclared Set", () => {
++  const program = parse(`
++    Set undeclared to "value"
++  `);
++
++  interpreter.register(program);
++
++  expect(() => interpreter.executeTopLevelCalls(program)).toThrow(
++    /Undeclared variable "undeclared"/
++  );
++});
++
++test("uninitialized variable", () => {
++  const program = parse(`
++    Create empty as String
++    Call Print(empty)
++  `);
++
++  interpreter.register(program);
++
++  expect(() => interpreter.executeTopLevelCalls(program)).toThrow(
++    /Variable "empty" is used before being initialized/
++  );
++});
++
++test("rejects type mismatch on Set", () => {
++  const program = parse(`
++    Create num as Number
++    Set num to "not a number"
++  `);
++
++  interpreter.register(program);
++
++  expect(() => interpreter.executeTopLevelCalls(program)).toThrow(
++    /Type mismatch: variable "num" expects Number, received String/
++  );
++});
++
++test("nested function calls can read a caller parameter", () => {
++  const program = parse(`
++    Define Inner() {
++      Call Print(name)
++    }
++
++    Define Outer(name) {
++      Call Inner()
++    }
++
++    Call Outer("nested value")
++  `);
++
++  interpreter.register(program);
++  interpreter.executeTopLevelCalls(program);
++
++  expect(logSpy).toHaveBeenCalledWith("nested value");
++});
+--- oshpyt_language/example.oshpyt
++++ oshpyt_language/example.oshpyt
+@@ -1,5 +1,11 @@
+-Define Hello(name) {
+-  Call Print(name)
++Create greeting as String
++Set greeting to "Hello from a global variable"
++Call Print(greeting)
++
++Define ShowLocal() {
++  Create message as String
++  Set message to "Hello from a local variable"
++  Call Print(message)
+ }
+ 
+-Call Hello("world")
++Call ShowLocal()

@@ -1,0 +1,55 @@
+-- Oshpyt Tokenizer Unit Tests
+-- Requires tokenizer.oshpyt to be loaded first.
+
+Define AssertEqual(actual, expected, testName) {
+  When actual == expected then {
+    Call Print("[PASS] " + testName)
+  } Otherwise {
+    Call Print(
+      "[FAIL] " + testName +
+      " | Expected: " + expected +
+      " | Got: " + actual
+    )
+  }
+}
+
+Define RunTokenizerTests() {
+  Call Print("Starting Oshpyt Tokenizer Unit Tests...")
+
+  Create tokensEmpty as List
+  Set tokensEmpty to Call Tokenize("")
+  Call AssertEqual(tokensEmpty[0]["type"], "EOF", "Empty input produces EOF")
+
+  Create tokensNum as List
+  Set tokensNum to Call Tokenize("42 100")
+  Call AssertEqual(tokensNum[0]["value"], "42", "First number value")
+  Call AssertEqual(tokensNum[1]["value"], "100", "Second number value")
+  Call AssertEqual(tokensNum[2]["type"], "EOF", "Numbers end with EOF")
+
+  Create tokensIdent as List
+  Set tokensIdent to Call Tokenize("varName _private user_2")
+  Call AssertEqual(tokensIdent[0]["type"], "IDENTIFIER", "Identifier type")
+  Call AssertEqual(tokensIdent[1]["value"], "_private", "Underscore identifier")
+  Call AssertEqual(tokensIdent[2]["value"], "user_2", "Identifier with digit")
+
+  Create tokensSymbols as List
+  Set tokensSymbols to Call Tokenize("a = b + 2")
+  Call AssertEqual(tokensSymbols[1]["value"], "=", "Equals symbol")
+  Call AssertEqual(tokensSymbols[3]["value"], "+", "Plus symbol")
+
+  Create apiTokens as List
+  Set apiTokens to Call ProcessSource("Set userAge to 25")
+  Call AssertEqual(apiTokens[0]["value"], "Set", "ProcessSource first token")
+  Call AssertEqual(apiTokens[1]["value"], "userAge", "ProcessSource identifier")
+  Call AssertEqual(apiTokens[3]["value"], "25", "ProcessSource number")
+  Call AssertEqual(apiTokens[4]["type"], "EOF", "ProcessSource ends with EOF")
+
+  Create tokensInvalid as List
+  Set tokensInvalid to Call Tokenize("name @")
+  Call AssertEqual(tokensInvalid[1]["type"], "INVALID", "Invalid symbol type")
+  Call AssertEqual(tokensInvalid[1]["value"], "@", "Invalid symbol preserved")
+
+  Call Print("Tokenizer Unit Tests completed.")
+}
+
+Call RunTokenizerTests()

@@ -1,0 +1,18 @@
+Create numbers as List
+Set numbers to [10, 20, 30]
+
+Call Push(numbers, 40)
+
+Create size as Number
+Set size to Length(numbers)
+
+Create second as Number
+Set second to Get(numbers, 1)
+
+Create last as Number
+Set last to Pop(numbers)
+
+Call Print(size)
+Call Print(second)
+Call Print(last)
+Call Print(numbers)

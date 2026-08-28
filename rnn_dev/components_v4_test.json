@@ -1,0 +1,169 @@
+{
+  "version": "multi_v4_email_first_tests",
+  "description": "Held-out exact sequence tests for the v4 email-first component RNN",
+  "cases": [
+    {
+      "name": "Blue save button",
+      "prompt": ["BUTTON", "COLOR_BLUE"],
+      "expected": [
+        "COMPONENT_START",
+        "BUTTON",
+        "COLOR_BLUE",
+        "TEXT_SAVE",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "name": "Green submit button",
+      "prompt": ["BUTTON", "COLOR_GREEN"],
+      "expected": [
+        "COMPONENT_START",
+        "BUTTON",
+        "COLOR_GREEN",
+        "TEXT_SUBMIT",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "name": "Red delete button",
+      "prompt": ["BUTTON", "COLOR_RED"],
+      "expected": [
+        "COMPONENT_START",
+        "BUTTON",
+        "COLOR_RED",
+        "TEXT_DELETE",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "name": "Yellow cancel button",
+      "prompt": ["BUTTON", "COLOR_YELLOW"],
+      "expected": [
+        "COMPONENT_START",
+        "BUTTON",
+        "COLOR_YELLOW",
+        "TEXT_CANCEL",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "name": "Yellow warning alert",
+      "prompt": ["ALERT", "COLOR_YELLOW"],
+      "expected": [
+        "COMPONENT_START",
+        "ALERT",
+        "COLOR_YELLOW",
+        "TEXT_WARNING",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "name": "Red error alert",
+      "prompt": ["ALERT", "COLOR_RED"],
+      "expected": [
+        "COMPONENT_START",
+        "ALERT",
+        "COLOR_RED",
+        "TEXT_ERROR",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "name": "Soft shaded ovoid head",
+      "prompt": ["OVOID_HEAD"],
+      "expected": [
+        "COMPONENT_START",
+        "OVOID_HEAD",
+        "COLOR_SKIN",
+        "SHADE_SOFT",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "name": "Name and email contact form",
+      "prompt": ["CONTACT_FORM", "FIELD_NAME", "FIELD_EMAIL"],
+      "expected": [
+        "COMPONENT_START",
+        "CONTACT_FORM",
+        "FIELD_NAME",
+        "FIELD_EMAIL",
+        "BUTTON_SUBMIT",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "name": "Email and password contact form",
+      "prompt": ["CONTACT_FORM", "FIELD_EMAIL", "FIELD_PASSWORD"],
+      "expected": [
+        "COMPONENT_START",
+        "CONTACT_FORM",
+        "FIELD_EMAIL",
+        "FIELD_PASSWORD",
+        "BUTTON_SUBMIT",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "name": "Name email and password contact form",
+      "prompt": [
+        "CONTACT_FORM",
+        "FIELD_NAME",
+        "FIELD_EMAIL",
+        "FIELD_PASSWORD"
+      ],
+      "expected": [
+        "COMPONENT_START",
+        "CONTACT_FORM",
+        "FIELD_NAME",
+        "FIELD_EMAIL",
+        "FIELD_PASSWORD",
+        "BUTTON_SUBMIT",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "name": "Move right animation",
+      "prompt": ["ANIMATION", "MOVE_RIGHT"],
+      "expected": [
+        "COMPONENT_START",
+        "ANIMATION",
+        "MOVE_RIGHT",
+        "DURATION_SHORT",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "name": "Grow animation",
+      "prompt": ["ANIMATION", "GROW"],
+      "expected": [
+        "COMPONENT_START",
+        "ANIMATION",
+        "GROW",
+        "DURATION_SHORT",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "name": "Fade in animation",
+      "prompt": ["ANIMATION", "FADE_IN"],
+      "expected": [
+        "COMPONENT_START",
+        "ANIMATION",
+        "FADE_IN",
+        "DURATION_SHORT",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "name": "Spin animation",
+      "prompt": ["ANIMATION", "SPIN"],
+      "expected": [
+        "COMPONENT_START",
+        "ANIMATION",
+        "SPIN",
+        "DURATION_SHORT",
+        "COMPONENT_END"
+      ]
+    }
+  ]
+}

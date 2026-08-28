@@ -1,0 +1,63 @@
+# Node dependencies and generated output
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Test fixtures
+.oshpyt-test-modules/
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Logs and accidental shell-output files
+*.log
+2045.9
+2046.0
+npx
+undefined)
+vitest
+{
+
+# Native build artifacts
+*.obj
+*.dll
+*.exp
+*.lib
+*.exe
+
+# Model weights and generated vocabulary
+model_l*.bin
+model_meta.json
+vocab.json
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+# Generated model weights and metadata anywhere in the repository
+*.bin
+*_meta.json
+vocab.json
+
+# Generated/runtime artifacts anywhere in the repository
+findstr
+
+# Archived and generated RNN output
+rnn_dev/backups/
+rnn_dev/models/
+
+# Historical Oshpyt language snapshots
+oshpyt_language/backups/
+oshpyt_language/runtime/backups/
+*.bak
+*.backup.ts
+
+# Historical Oshpyt language snapshots
+oshpyt_language/backups/
+oshpyt_language/runtime/backups/
+*.bak
+*.backup.ts

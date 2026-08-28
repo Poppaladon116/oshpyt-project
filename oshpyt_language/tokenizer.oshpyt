@@ -1,0 +1,115 @@
+-- Module: Oshpyt Tokenizer
+-- Converts Oshpyt source code into lexical tokens.
+
+Define CreateToken(tokenType, tokenValue) {
+  Return {"type": tokenType, "value": tokenValue}
+}
+
+Define IsDigit(character) {
+  Return character >= "0" and character <= "9"
+}
+
+Define IsAlpha(character) {
+  Return (character >= "a" and character <= "z") or
+         (character >= "A" and character <= "Z") or
+         character == "_"
+}
+
+Define IsAlphaNumeric(character) {
+  Return Call IsAlpha(character) or Call IsDigit(character)
+}
+
+Define IsWhitespace(character) {
+  Return character == " " or
+         character == "\t" or
+         character == "\n" or
+         character == "\r"
+}
+
+Define IsAllowedSymbol(character) {
+  Return character == "(" or
+         character == ")" or
+         character == "{" or
+         character == "}" or
+         character == "[" or
+         character == "]" or
+         character == "," or
+         character == ":" or
+         character == "+" or
+         character == "-" or
+         character == "*" or
+         character == "/" or
+         character == "=" or
+         character == ">" or
+         character == "<"
+}
+
+Define Tokenize(sourceCode) {
+  Create tokens as List
+  Set tokens to []
+
+  Create sourceLength as Number
+  Set sourceLength to sourceCode.length
+
+  Create cursor as Number
+  Set cursor to 0
+
+  While cursor < sourceLength {
+    Create currentChar as String
+    Set currentChar to sourceCode[cursor]
+
+    When Call IsWhitespace(currentChar) then {
+      Set cursor to cursor + 1
+    } Otherwise {
+      When Call IsDigit(currentChar) then {
+        Create numBuffer as String
+        Set numBuffer to ""
+
+        While cursor < sourceLength and Call IsDigit(sourceCode[cursor]) {
+          Set numBuffer to numBuffer + sourceCode[cursor]
+          Set cursor to cursor + 1
+        }
+
+        Set tokens to tokens + [
+          Call CreateToken("NUMBER", numBuffer)
+        ]
+      } Otherwise {
+        When Call IsAlpha(currentChar) then {
+          Create identBuffer as String
+          Set identBuffer to ""
+
+          While cursor < sourceLength and Call IsAlphaNumeric(sourceCode[cursor]) {
+            Set identBuffer to identBuffer + sourceCode[cursor]
+            Set cursor to cursor + 1
+          }
+
+          Set tokens to tokens + [
+            Call CreateToken("IDENTIFIER", identBuffer)
+          ]
+        } Otherwise {
+          When Call IsAllowedSymbol(currentChar) then {
+            Set tokens to tokens + [
+              Call CreateToken("SYMBOL", currentChar)
+            ]
+            Set cursor to cursor + 1
+          } Otherwise {
+            Set tokens to tokens + [
+              Call CreateToken("INVALID", currentChar)
+            ]
+            Set cursor to cursor + 1
+          }
+        }
+      }
+    }
+  }
+
+  Set tokens to tokens + [
+    Call CreateToken("EOF", "")
+  ]
+
+  Return tokens
+}
+
+Define ProcessSource(sourceCode) {
+  Return Call Tokenize(sourceCode)
+}

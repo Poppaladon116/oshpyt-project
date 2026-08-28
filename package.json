@@ -1,0 +1,33 @@
+{
+  "name": "oshpyt-project",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+  "dev": "tsx server_rnn.ts",
+  "test": "vitest run",
+  "test:api": "vitest run test/api.chat.test.ts",
+  "oshpyt:run": "tsx oshpyt_language/runtime/cli.ts",
+  "test:oshpyt": "vitest run oshpyt_language/runtime/tests"
+},
+  "dependencies": {
+    "argon2": "^0.45.1",
+    "connect-redis": "^10.0.0",
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.6.2",
+    "express-session": "^1.19.0",
+    "helmet": "^8.3.0",
+    "koffi": "^2.13.2",
+    "redis": "^6.2.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/express-session": "^1.19.0",
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

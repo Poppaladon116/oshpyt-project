@@ -1,0 +1,17 @@
+Create index as Number
+Set index to 0
+
+While index < 4 {
+  Create current as Number
+  Set current to index * 10
+
+  When current >= 20 then {
+    Create label as String
+    Set label to "large"
+    Call Print(label)
+  }
+
+  Call Print(current)
+
+  Set index to index + 1
+}

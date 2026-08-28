@@ -1,0 +1,22 @@
+Define Sum(values) {
+  Create index as Number
+  Create total as Number
+
+  Set index to 0
+  Set total to 0
+
+  While index < Length(values) {
+    Set total to total + Get(values, index)
+    Set index to index + 1
+  }
+
+  Return total
+}
+
+Create numbers as List
+Set numbers to [5, 10, 15, 20]
+
+Create answer as Number
+Set answer to Sum(numbers)
+
+Call Print(answer)

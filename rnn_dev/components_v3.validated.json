@@ -1,0 +1,396 @@
+{
+  "version": "multi_v3",
+  "description": "Semantic component plans for RNN v3 training",
+  "vocabulary": [
+    "COMPONENT_START",
+    "BUTTON",
+    "COLOR_BLUE",
+    "TEXT_SAVE",
+    "COMPONENT_END",
+    "COLOR_GREEN",
+    "TEXT_SUBMIT",
+    "OVOID_HEAD",
+    "COLOR_SKIN",
+    "SHADE_SOFT",
+    "ANIMATION",
+    "MOVE_RIGHT",
+    "DURATION_SHORT",
+    "GROW",
+    "COLOR_RED",
+    "TEXT_DELETE",
+    "COLOR_YELLOW",
+    "TEXT_CANCEL",
+    "ALERT",
+    "TEXT_WARNING",
+    "TEXT_ERROR",
+    "CONTACT_FORM",
+    "FIELD_NAME",
+    "FIELD_EMAIL",
+    "BUTTON_SUBMIT",
+    "FIELD_PASSWORD",
+    "FADE_IN",
+    "SPIN"
+  ],
+  "vocabularySize": 28,
+  "tokenToId": {
+    "COMPONENT_START": 0,
+    "BUTTON": 1,
+    "COLOR_BLUE": 2,
+    "TEXT_SAVE": 3,
+    "COMPONENT_END": 4,
+    "COLOR_GREEN": 5,
+    "TEXT_SUBMIT": 6,
+    "OVOID_HEAD": 7,
+    "COLOR_SKIN": 8,
+    "SHADE_SOFT": 9,
+    "ANIMATION": 10,
+    "MOVE_RIGHT": 11,
+    "DURATION_SHORT": 12,
+    "GROW": 13,
+    "COLOR_RED": 14,
+    "TEXT_DELETE": 15,
+    "COLOR_YELLOW": 16,
+    "TEXT_CANCEL": 17,
+    "ALERT": 18,
+    "TEXT_WARNING": 19,
+    "TEXT_ERROR": 20,
+    "CONTACT_FORM": 21,
+    "FIELD_NAME": 22,
+    "FIELD_EMAIL": 23,
+    "BUTTON_SUBMIT": 24,
+    "FIELD_PASSWORD": 25,
+    "FADE_IN": 26,
+    "SPIN": 27
+  },
+  "promptSequences": [
+    [
+      "BUTTON",
+      "COLOR_BLUE"
+    ],
+    [
+      "BUTTON",
+      "COLOR_GREEN"
+    ],
+    [
+      "OVOID_HEAD"
+    ],
+    [
+      "ANIMATION",
+      "MOVE_RIGHT"
+    ],
+    [
+      "ANIMATION",
+      "GROW"
+    ],
+    [
+      "BUTTON",
+      "COLOR_RED"
+    ],
+    [
+      "BUTTON",
+      "COLOR_YELLOW"
+    ],
+    [
+      "ALERT",
+      "COLOR_YELLOW"
+    ],
+    [
+      "ALERT",
+      "COLOR_RED"
+    ],
+    [
+      "CONTACT_FORM",
+      "FIELD_NAME",
+      "FIELD_EMAIL"
+    ],
+    [
+      "CONTACT_FORM",
+      "FIELD_NAME",
+      "FIELD_EMAIL",
+      "FIELD_PASSWORD"
+    ],
+    [
+      "CONTACT_FORM",
+      "FIELD_EMAIL",
+      "FIELD_PASSWORD"
+    ],
+    [
+      "ANIMATION",
+      "FADE_IN"
+    ],
+    [
+      "ANIMATION",
+      "SPIN"
+    ]
+  ],
+  "trainingSequences": [
+    [
+      "COMPONENT_START",
+      "BUTTON",
+      "COLOR_BLUE",
+      "TEXT_SAVE",
+      "COMPONENT_END"
+    ],
+    [
+      "COMPONENT_START",
+      "BUTTON",
+      "COLOR_GREEN",
+      "TEXT_SUBMIT",
+      "COMPONENT_END"
+    ],
+    [
+      "COMPONENT_START",
+      "OVOID_HEAD",
+      "COLOR_SKIN",
+      "SHADE_SOFT",
+      "COMPONENT_END"
+    ],
+    [
+      "COMPONENT_START",
+      "ANIMATION",
+      "MOVE_RIGHT",
+      "DURATION_SHORT",
+      "COMPONENT_END"
+    ],
+    [
+      "COMPONENT_START",
+      "ANIMATION",
+      "GROW",
+      "DURATION_SHORT",
+      "COMPONENT_END"
+    ],
+    [
+      "COMPONENT_START",
+      "BUTTON",
+      "COLOR_RED",
+      "TEXT_DELETE",
+      "COMPONENT_END"
+    ],
+    [
+      "COMPONENT_START",
+      "BUTTON",
+      "COLOR_YELLOW",
+      "TEXT_CANCEL",
+      "COMPONENT_END"
+    ],
+    [
+      "COMPONENT_START",
+      "ALERT",
+      "COLOR_YELLOW",
+      "TEXT_WARNING",
+      "COMPONENT_END"
+    ],
+    [
+      "COMPONENT_START",
+      "ALERT",
+      "COLOR_RED",
+      "TEXT_ERROR",
+      "COMPONENT_END"
+    ],
+    [
+      "COMPONENT_START",
+      "CONTACT_FORM",
+      "FIELD_NAME",
+      "FIELD_EMAIL",
+      "BUTTON_SUBMIT",
+      "COMPONENT_END"
+    ],
+    [
+      "COMPONENT_START",
+      "CONTACT_FORM",
+      "FIELD_NAME",
+      "FIELD_EMAIL",
+      "FIELD_PASSWORD",
+      "BUTTON_SUBMIT",
+      "COMPONENT_END"
+    ],
+    [
+      "COMPONENT_START",
+      "CONTACT_FORM",
+      "FIELD_EMAIL",
+      "FIELD_PASSWORD",
+      "BUTTON_SUBMIT",
+      "COMPONENT_END"
+    ],
+    [
+      "COMPONENT_START",
+      "ANIMATION",
+      "FADE_IN",
+      "DURATION_SHORT",
+      "COMPONENT_END"
+    ],
+    [
+      "COMPONENT_START",
+      "ANIMATION",
+      "SPIN",
+      "DURATION_SHORT",
+      "COMPONENT_END"
+    ]
+  ],
+  "indexedPromptSequences": [
+    [
+      1,
+      2
+    ],
+    [
+      1,
+      5
+    ],
+    [
+      7
+    ],
+    [
+      10,
+      11
+    ],
+    [
+      10,
+      13
+    ],
+    [
+      1,
+      14
+    ],
+    [
+      1,
+      16
+    ],
+    [
+      18,
+      16
+    ],
+    [
+      18,
+      14
+    ],
+    [
+      21,
+      22,
+      23
+    ],
+    [
+      21,
+      22,
+      23,
+      25
+    ],
+    [
+      21,
+      23,
+      25
+    ],
+    [
+      10,
+      26
+    ],
+    [
+      10,
+      27
+    ]
+  ],
+  "indexedTrainingSequences": [
+    [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    [
+      0,
+      1,
+      5,
+      6,
+      4
+    ],
+    [
+      0,
+      7,
+      8,
+      9,
+      4
+    ],
+    [
+      0,
+      10,
+      11,
+      12,
+      4
+    ],
+    [
+      0,
+      10,
+      13,
+      12,
+      4
+    ],
+    [
+      0,
+      1,
+      14,
+      15,
+      4
+    ],
+    [
+      0,
+      1,
+      16,
+      17,
+      4
+    ],
+    [
+      0,
+      18,
+      16,
+      19,
+      4
+    ],
+    [
+      0,
+      18,
+      14,
+      20,
+      4
+    ],
+    [
+      0,
+      21,
+      22,
+      23,
+      24,
+      4
+    ],
+    [
+      0,
+      21,
+      22,
+      23,
+      25,
+      24,
+      4
+    ],
+    [
+      0,
+      21,
+      23,
+      25,
+      24,
+      4
+    ],
+    [
+      0,
+      10,
+      26,
+      12,
+      4
+    ],
+    [
+      0,
+      10,
+      27,
+      12,
+      4
+    ]
+  ],
+  "maxGenerationTokens": 12
+}

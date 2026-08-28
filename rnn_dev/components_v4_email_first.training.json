@@ -1,0 +1,152 @@
+{
+  "version": "multi_v3",
+  "description": "Semantic component plans for RNN v3 training",
+  "maxGenerationTokens": 12,
+  "sequences": [
+    {
+      "prompt": ["BUTTON", "COLOR_BLUE"],
+      "tokens": [
+        "COMPONENT_START",
+        "BUTTON",
+        "COLOR_BLUE",
+        "TEXT_SAVE",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "prompt": ["BUTTON", "COLOR_GREEN"],
+      "tokens": [
+        "COMPONENT_START",
+        "BUTTON",
+        "COLOR_GREEN",
+        "TEXT_SUBMIT",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "prompt": ["OVOID_HEAD"],
+      "tokens": [
+        "COMPONENT_START",
+        "OVOID_HEAD",
+        "COLOR_SKIN",
+        "SHADE_SOFT",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "prompt": ["ANIMATION", "MOVE_RIGHT"],
+      "tokens": [
+        "COMPONENT_START",
+        "ANIMATION",
+        "MOVE_RIGHT",
+        "DURATION_SHORT",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "prompt": ["ANIMATION", "GROW"],
+      "tokens": [
+        "COMPONENT_START",
+        "ANIMATION",
+        "GROW",
+        "DURATION_SHORT",
+        "COMPONENT_END"
+      ]
+    },
+
+    {
+      "prompt": ["BUTTON", "COLOR_RED"],
+      "tokens": [
+        "COMPONENT_START",
+        "BUTTON",
+        "COLOR_RED",
+        "TEXT_DELETE",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "prompt": ["BUTTON", "COLOR_YELLOW"],
+      "tokens": [
+        "COMPONENT_START",
+        "BUTTON",
+        "COLOR_YELLOW",
+        "TEXT_CANCEL",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "prompt": ["ALERT", "COLOR_YELLOW"],
+      "tokens": [
+        "COMPONENT_START",
+        "ALERT",
+        "COLOR_YELLOW",
+        "TEXT_WARNING",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "prompt": ["ALERT", "COLOR_RED"],
+      "tokens": [
+        "COMPONENT_START",
+        "ALERT",
+        "COLOR_RED",
+        "TEXT_ERROR",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "prompt": ["CONTACT_FORM", "FIELD_NAME", "FIELD_EMAIL"],
+      "tokens": [
+        "COMPONENT_START",
+        "CONTACT_FORM",
+        "FIELD_NAME",
+        "FIELD_EMAIL",
+        "BUTTON_SUBMIT",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "prompt": ["CONTACT_FORM", "FIELD_NAME", "FIELD_EMAIL", "FIELD_PASSWORD"],
+      "tokens": [
+        "COMPONENT_START",
+        "CONTACT_FORM",
+        "FIELD_NAME",
+        "FIELD_EMAIL",
+        "FIELD_PASSWORD",
+        "BUTTON_SUBMIT",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "prompt": ["CONTACT_FORM", "FIELD_EMAIL", "FIELD_PASSWORD"],
+      "tokens": [
+        "COMPONENT_START",
+        "CONTACT_FORM",
+        "FIELD_EMAIL",
+        "FIELD_PASSWORD",
+        "BUTTON_SUBMIT",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "prompt": ["ANIMATION", "FADE_IN"],
+      "tokens": [
+        "COMPONENT_START",
+        "ANIMATION",
+        "FADE_IN",
+        "DURATION_SHORT",
+        "COMPONENT_END"
+      ]
+    },
+    {
+      "prompt": ["ANIMATION", "SPIN"],
+      "tokens": [
+        "COMPONENT_START",
+        "ANIMATION",
+        "SPIN",
+        "DURATION_SHORT",
+        "COMPONENT_END"
+      ]
+    }
+  ]
+}

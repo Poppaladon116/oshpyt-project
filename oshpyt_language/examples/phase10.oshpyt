@@ -1,0 +1,12 @@
+Create name as String
+Set name to Input("What is your name? ")
+
+Create ageText as String
+Set ageText to Input("How old are you? ")
+
+Create age as Number
+Set age to ToNumber(ageText)
+
+Call Print("Hello, " + name)
+Call Print("Next year you will be " + ToString(age + 1))
+Call Print("Your age is a " + TypeOf(age))

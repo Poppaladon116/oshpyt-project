@@ -1,0 +1,49 @@
+{
+  "version": "components_v1",
+  "description": "OSHPYT semantic component training corpus",
+  "sequences": [
+    [
+      "COMPONENT_START",
+      "BUTTON",
+      "COLOR_BLUE",
+      "TEXT_SAVE",
+      "COMPONENT_END"
+    ],
+    [
+      "COMPONENT_START",
+      "BUTTON",
+      "COLOR_GREEN",
+      "TEXT_SUBMIT",
+      "COMPONENT_END"
+    ],
+    [
+      "COMPONENT_START",
+      "OVOID_HEAD",
+      "COLOR_SKIN",
+      "SHADE_SOFT",
+      "COMPONENT_END"
+    ],
+    [
+      "COMPONENT_START",
+      "CONTACT_FORM",
+      "FIELD_NAME",
+      "FIELD_EMAIL",
+      "BUTTON_SUBMIT",
+      "COMPONENT_END"
+    ],
+    [
+      "COMPONENT_START",
+      "ANIMATION",
+      "MOVE_RIGHT",
+      "DURATION_SHORT",
+      "COMPONENT_END"
+    ],
+    [
+      "COMPONENT_START",
+      "ANIMATION",
+      "GROW",
+      "DURATION_SHORT",
+      "COMPONENT_END"
+    ]
+  ]
+}

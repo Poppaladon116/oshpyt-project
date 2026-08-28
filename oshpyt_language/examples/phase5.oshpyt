@@ -1,0 +1,7 @@
+Create count as Number
+Set count to 0
+
+While count < 3 {
+  Set count to count + 1
+  Call Print(count)
+}

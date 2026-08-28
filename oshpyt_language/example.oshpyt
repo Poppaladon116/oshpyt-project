@@ -1,0 +1,16 @@
+Create steps as Number
+Set steps to 3
+
+Create completed as Number
+Set completed to 0
+
+Repeat steps times {
+  Set completed to completed + 1
+  Call Print(completed)
+}
+
+When completed == steps then {
+  Call Print("Movement sequence complete")
+} Otherwise {
+  Call Print("Movement sequence incomplete")
+}

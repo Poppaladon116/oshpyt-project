@@ -1,0 +1,270 @@
+oshpyt_trigger_blue_button
+html
+< button class = " osh-btn osh-blue " > blue < / button >
+component_end
+
+oshpyt_trigger_green_button
+html
+< button class = " osh-btn osh-green " > submit < / button >
+component_end
+
+oshpyt_trigger_red_button
+html
+< button class = " osh-btn osh-red " > delete < / button >
+component_end
+
+oshpyt_trigger_dark_button
+html
+< button class = " osh-btn osh-dark " > continue < / button >
+component_end
+
+oshpyt_trigger_purple_button
+html
+< button class = " osh-btn osh-purple " > launch < / button >
+component_end
+
+oshpyt_trigger_outline_button
+html
+< button class = " osh-btn osh-outline " > learn more < / button >
+component_end
+
+oshpyt_trigger_icon_button
+html
+< button class = " osh-icon-button " > plus < / button >
+component_end
+
+oshpyt_trigger_glass_card
+html
+< div class = " osh-card osh-glass " > glass card < / div >
+component_end
+
+oshpyt_trigger_dark_card
+html
+< div class = " osh-card osh-dark-card " > dark card < / div >
+component_end
+
+oshpyt_trigger_profile_card
+html
+< div class = " osh-card osh-profile " > profile < / div >
+component_end
+
+oshpyt_trigger_stat_card
+html
+< div class = " osh-card osh-stat " > 1250 users < / div >
+component_end
+
+oshpyt_trigger_neon_alert
+html
+< div class = " osh-alert osh-neon " > system error < / div >
+component_end
+
+oshpyt_trigger_danger_alert
+html
+< div class = " osh-alert osh-danger " > unauthorized access < / div >
+component_end
+
+oshpyt_trigger_success_alert
+html
+< div class = " osh-alert osh-success " > saved successfully < / div >
+component_end
+
+oshpyt_trigger_warning_alert
+html
+< div class = " osh-alert osh-warning " > check input < / div >
+component_end
+
+oshpyt_trigger_neon_terminal
+html
+< div class = " osh-terminal " > system online < / div >
+component_end
+
+oshpyt_trigger_loading_state
+html
+< div class = " osh-loading " > loading < / div >
+component_end
+
+oshpyt_trigger_pulse_dot
+html
+< div class = " osh-pulse-dot " > < / div >
+component_end
+
+oshpyt_trigger_progress_bar
+html
+< div class = " osh-progress " > < div class = " osh-progress-fill " > < / div > < / div >
+component_end
+
+oshpyt_trigger_user_table
+html
+< table class = " osh-table " > < tr > < th > id < / th > < th > name < / th > < / tr > < / table >
+component_end
+
+oshpyt_trigger_data_grid
+html
+< div class = " osh-grid " > < div > a1 < / div > < div > b1 < / div > < / div >
+component_end
+
+oshpyt_trigger_contact_form
+html
+< form class = " osh-form " > < label > name < / label > < input type = " text " > < button > submit < / button > < / form >
+component_end
+
+oshpyt_trigger_sidebar_layout
+html
+< div class = " osh-layout " > < aside > nav < / aside > < main > content < / main > < / div >
+component_end
+
+oshpyt_trigger_modern_nav
+html
+< nav class = " osh-nav " > < div > logo < / div > < div > menu < / div > < / nav >
+component_end
+
+oshpyt_trigger_avatar_stack
+html
+< div class = " osh-avatar-stack " > < img src = " avatar1 " > < img src = " avatar2 " > < / div >
+component_end
+
+oshpyt_trigger_chart_bars
+html
+< div class = " osh-chart-bars " > < div class = " osh-bar small " > < / div > < div class = " osh-bar tall " > < / div > < / div >
+component_end
+
+oshpyt_trigger_gold_header
+html
+< h1 class = " osh-gold-header " > premier < / h1 >
+component_end
+
+oshpyt_trigger_typography_hero
+html
+< h1 class = " osh-hero-text " > elegant design < / h1 >
+component_end
+
+oshpyt_trigger_floating_action
+html
+< button class = " osh-floating-action " > plus < / button >
+component_end
+
+oshpyt_trigger_star_svg
+svg
+< svg class = " osh-star " viewbox = " 0 0 24 24 " > < polygon points = " 12,2 15,8 22,9 17,14 18,21 12,17 6,21 7,14 2,9 9,8 " / > < / svg >
+component_end
+
+oshpyt_trigger_draw_square
+render
+1 1 1 1 1 1 1 1
+1 0 0 0 0 0 0 1
+1 0 0 0 0 0 0 1
+1 1 1 1 1 1 1 1
+component_end
+
+oshpyt_trigger_dither_art
+render
+1 0 1 0 1 0 1 0
+0 1 0 1 0 1 0 1
+1 0 1 0 1 0 1 0
+0 1 0 1 0 1 0 1
+component_end
+
+oshpyt_trigger_shade_gradient
+render
+0 0 0 0 0 0 0 0
+0 0 1 1 1 1 0 0
+1 1 1 1 1 1 1 1
+component_end
+
+oshpyt_trigger_ovoid_head
+render
+0 0 1 1 1 1 0 0
+0 1 0 0 0 0 1 0
+1 0 1 0 0 1 0 1
+1 0 0 1 1 0 0 1
+0 1 0 0 0 0 1 0
+0 0 1 1 1 1 0 0
+component_end
+
+oshpyt_trigger_3d_sphere
+render
+0 0 1 1 1 1 0 0
+0 1 1 1 1 1 1 0
+1 1 1 1 1 1 1 1
+0 1 1 1 1 1 1 0
+0 0 1 1 1 1 0 0
+component_end
+
+oshpyt_trigger_anim_right
+frame_1
+1 0 0 0 0 0 0 0
+frame_2
+0 1 0 0 0 0 0 0
+frame_3
+0 0 1 0 0 0 0 0
+frame_4
+0 0 0 1 0 0 0 0
+component_end
+
+oshpyt_trigger_anim_left
+frame_1
+0 0 0 1 0 0 0 0
+frame_2
+0 0 1 0 0 0 0 0
+frame_3
+0 1 0 0 0 0 0 0
+frame_4
+1 0 0 0 0 0 0 0
+component_end
+
+oshpyt_trigger_anim_down
+frame_1
+1 1 1 1 1 1 1 1
+0 0 0 0 0 0 0 0
+frame_2
+0 0 0 0 0 0 0 0
+1 1 1 1 1 1 1 1
+frame_3
+0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0
+1 1 1 1 1 1 1 1
+component_end
+
+oshpyt_trigger_anim_slide
+frame_1
+1 1 0 0 0 0 0 0
+frame_2
+0 1 1 0 0 0 0 0
+frame_3
+0 0 1 1 0 0 0 0
+frame_4
+0 0 0 1 1 0 0 0
+component_end
+
+oshpyt_trigger_anim_grow
+frame_1
+0 0 0 1 1 0 0 0
+frame_2
+0 0 1 1 1 1 0 0
+frame_3
+0 1 1 1 1 1 1 0
+frame_4
+1 1 1 1 1 1 1 1
+component_end
+
+oshpyt_trigger_anim_pulse
+frame_1
+0 0 0 1 1 0 0 0
+frame_2
+0 1 1 1 1 1 1 0
+frame_3
+1 1 1 1 1 1 1 1
+frame_4
+0 1 1 1 1 1 1 0
+component_end
+
+oshpyt_trigger_anim_rotate
+frame_1
+1 0 0 0 0 0 0 1
+frame_2
+0 1 0 0 0 0 1 0
+frame_3
+0 0 1 0 0 1 0 0
+frame_4
+0 0 0 1 1 0 0 0
+component_end

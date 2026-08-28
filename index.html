@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OSHPYT WORLD MODEL v1.3</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #020617; color: white; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        #sidebar { width: 350px; border-right: 1px solid #1e293b; background: #0f172a; padding: 20px; display: flex; flex-direction: column; }
+        #display-zone { flex: 1; background: #f8fafc; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; color: #020617; position: relative; }
+        #chat-log { flex: 1; overflow-y: auto; font-size: 13px; color: #94a3b8; margin-bottom: 20px; border: 1px solid #1e293b; padding: 10px; border-radius: 4px; }
+        .input-group { display: flex; gap: 10px; }
+        input { flex: 1; padding: 12px; background: #1e293b; border: 1px solid #3b82f6; color: white; border-radius: 8px; }
+        button { padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #2563eb; }
+        canvas { background: black; border: 8px solid #0f172a; border-radius: 12px; display: none; width: 400px; height: 400px; image-rendering: pixelated; }
+        #app-preview { width: 100%; display: flex; justify-content: center; align-items: center; min-height: 200px; }
+        #status-bar { position: absolute; top: 20px; left: 20px; font-size: 12px; font-weight: bold; color: #3b82f6; text-transform: uppercase; }
+        #debug-output { position: absolute; bottom: 20px; left: 20px; font-family: monospace; font-size: 10px; color: #64748b; max-width: 90%; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <h2 style="margin-top:0; color:#3b82f6;">OSHPYT v1.3</h2>
+        <div id="chat-log"><div>System: Ready for commands...</div></div>
+        <div class="input-group">
+            <input type="text" id="user-input" placeholder="[BUILD:BLUE_BTN]">
+            <button id="send-btn">BUILD</button>
+        </div>
+    </div>
+
+    <div id="display-zone">
+        <div id="status-bar">STATUS: IDLE</div>
+        <div id="app-preview"></div>
+        <canvas id="oshpyt-canvas" width="8" height="8"></canvas>
+        <div id="debug-output">Raw Neural Logic: ---</div>
+    </div>
+
+    <script>
+        const input = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const log = document.getElementById('chat-log');
+        const status = document.getElementById('status-bar');
+        const appZone = document.getElementById('app-preview');
+        const canvas = document.getElementById('oshpyt-canvas');
+        const debug = document.getElementById('debug-output');
+
+        // Logic to trigger the command
+        async function runCommand() {
+            const text = input.value.trim();
+            if (!text) return;
+
+            console.log("OSHPYT: Triggering command:", text);
+            log.innerHTML += `<div style="margin-bottom:8px"><b>You:</b> ${text}</div>`;
+            input.value = "";
+            status.innerText = "STATUS: CONNECTING TO 6-LAYER BRAIN...";
+            log.scrollTop = log.scrollHeight;
+
+            try {
+                const response = await fetch('http://localhost:3000/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({text})
+                });
+
+                status.innerText = "STATUS: BRAIN IS CALCULATING (WAIT 30s)...";
+                const data = await response.json();
+                console.log("OSHPYT: Response received!");
+
+                debug.innerText = "Raw Logic: " + data.reply;
+
+                if (data.reply.includes("frame_")) {
+                    status.innerText = "STATUS: RENDERING TEMPORAL VIDEO";
+                    appZone.innerHTML = "";
+                    canvas.style.display = "block";
+                    playVideo(data.reply);
+                } else if (data.reply.includes("<")) {
+                    status.innerText = "STATUS: RENDERING APP COMPONENT";
+                    canvas.style.display = "none";
+                    appZone.innerHTML = data.reply;
+                } else {
+                    status.innerText = "STATUS: RENDERING NEURAL ART";
+                    canvas.style.display = "block";
+                    appZone.innerHTML = "";
+                    drawPixels(data.reply.split(" "));
+                }
+            } catch (err) {
+                console.error(err);
+                status.innerText = "STATUS: ERROR - SERVER OFFLINE";
+            }
+        }
+
+        // BINDINGS
+        sendBtn.onclick = runCommand;
+        input.onkeypress = (e) => { if (e.key === 'Enter') runCommand(); };
+
+        function drawPixels(pixels) {
+            const ctx = canvas.getContext('2d');
+            const cleanPixels = pixels.filter(x => x === "0" || x === "1");
+            ctx.clearRect(0,0,8,8);
+            for(let i=0; i<64; i++) {
+                ctx.fillStyle = cleanPixels[i] === "1" ? "#3b82f6" : "#1e293b";
+                ctx.fillRect(i % 8, Math.floor(i / 8), 1, 1);
+            }
+        }
+
+        function playVideo(raw) {
+            const frames = raw.split(/frame_\d+/).filter(f => f.length > 20);
+            let i = 0;
+            const interval = setInterval(() => {
+                if (i >= frames.length) return clearInterval(interval);
+                drawPixels(frames[i].trim().split(" "));
+                i++;
+            }, 300);
+        }
+    </script>
+</body>
+</html>
