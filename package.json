@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-  "dev": "tsx server_rnn.ts",
+  "dev": "tsx rnn_dev/server_rnn.ts",
   "test": "vitest run",
   "test:api": "vitest run test/api.chat.test.ts",
   "oshpyt:run": "tsx oshpyt_language/runtime/cli.ts",
