@@ -1,7 +1,11 @@
 import * as fs from "fs";
+import path from "node:path";
 import express from "express";
 import helmet from "helmet";
 import { Tensor } from "./OshpytTensor";
+
+const RNN_DEV_DIR = import.meta.dirname;
+const PORT = Number(process.env.PORT ?? 3003);
 
 type RnnMeta = {
   architecture: string;
@@ -20,11 +24,26 @@ type ChatRequest = {
   text?: unknown;
 };
 
-const MODEL_DIR = process.env.MODEL_DIR ?? "models/multi_v4_email_first";
-const PORT = Number(process.env.PORT ?? 3003);
+const MODEL_DIR = path.join(
+  RNN_DEV_DIR,
+  "models",
+  "multi_v4_email_first"
+);
 
 function loadMeta(): RnnMeta {
-  const raw = fs.readFileSync(`${MODEL_DIR}/rnn_meta.json`, "utf8");
+  const metaPath = path.join(MODEL_DIR, "rnn_meta.json");
+
+  if (!fs.existsSync(metaPath)) {
+    throw new Error(
+      [
+        "OSHPYT model metadata is missing.",
+        `Expected: ${metaPath}`,
+        "Update MODEL_DIR or restore the model artifacts."
+      ].join("\n")
+    );
+  }
+
+  const raw = fs.readFileSync(metaPath, "utf8");
   const meta = JSON.parse(raw) as RnnMeta;
 
   if (
@@ -33,13 +52,13 @@ function loadMeta(): RnnMeta {
     typeof meta.hiddenSize !== "number" ||
     typeof meta.maxGenerationTokens !== "number"
   ) {
-    throw new Error("Invalid RNN metadata file.");
+    throw new Error(`Invalid RNN metadata file: ${metaPath}`);
   }
 
   if (meta.vocabulary.length !== meta.vocabularySize) {
     throw new Error(
       `Metadata mismatch: vocabulary has ${meta.vocabulary.length} tokens, ` +
-        `but vocabularySize is ${meta.vocabularySize}.`
+      `but vocabularySize is ${meta.vocabularySize}.`
     );
   }
 
@@ -205,17 +224,24 @@ function advanceHidden(
   const input = makeRow(oneHot(tokenId, meta.vocabularySize));
   const inputPart = Tensor.allocate(1, meta.hiddenSize);
   const memoryPart = Tensor.allocate(1, meta.hiddenSize);
-  const nextHidden = Tensor.allocate(1, meta.hiddenSize);
 
   try {
     input.matmulTo(Wx, inputPart);
     hidden.matmulTo(Wh, memoryPart);
 
-    nextHidden.update(inputPart.download());
-    nextHidden.add(memoryPart);
-    nextHidden.leakyRelu();
+    const inputValues = inputPart.download();
+    const memoryValues = memoryPart.download();
+    const nextValues = new Float32Array(meta.hiddenSize);
 
-    return nextHidden;
+    for (let i = 0; i < meta.hiddenSize; i++) {
+      const sum = inputValues[i] + memoryValues[i];
+
+      nextValues[i] = sum >= 0
+        ? sum
+        : sum * meta.negativeSlope;
+    }
+
+    return makeRow(nextValues);
   } finally {
     input.destroy();
     inputPart.destroy();
@@ -355,22 +381,27 @@ function main(): void {
     const body = request.body as ChatRequest;
 
     if (typeof body.text !== "string" || !body.text.trim()) {
-  return response.status(400).json({
-    error: "Provide at least one supported prompt token.",
-  });
-}
+      return response.status(400).json({
+        error: "Provide at least one supported prompt token.",
+      });
+    }
 
     try {
-      const tokenized = tokenizePrompt(body.text, vocabulary);
+      const text = body.text.trim();
 
-if (tokenized.unknownTokens.length > 0) {
-  return response.status(400).json({
-    error: "Unsupported prompt token(s).",
-    unknownTokens: tokenized.unknownTokens,
-  });
-}
+      console.log("OSHPYT /chat received:", text);
+      console.time("OSHPYT /chat generation");
 
-const promptTokens = tokenized.tokens;
+      const tokenized = tokenizePrompt(text, vocabulary);
+
+      if (tokenized.unknownTokens.length > 0) {
+        return response.status(400).json({
+          error: "Unsupported prompt token(s).",
+          unknownTokens: tokenized.unknownTokens,
+        });
+      }
+
+      const promptTokens = tokenized.tokens;
 
       if (promptTokens.length === 0) {
         return response.status(400).json({
@@ -391,13 +422,14 @@ const promptTokens = tokenized.tokens;
         Wo
       );
 
+      console.timeEnd("OSHPYT /chat generation");
+
       const completed = tokens[tokens.length - 1] === "COMPONENT_END";
 
       if (!completed) {
         return response.status(422).json({
           error: "Generation reached its token limit before COMPONENT_END.",
           tokens,
-          reply: null,
         });
       }
 
@@ -405,16 +437,14 @@ const promptTokens = tokenized.tokens;
 
       if (reply == null) {
         return response.status(422).json({
-          error:
-            "The RNN generated a complete sequence with no deterministic renderer template.",
+          error: "Generated tokens did not map to a supported component.",
           tokens,
-          reply: null,
         });
       }
 
       console.log(`RNN response: ${tokens.join(" -> ")}`);
 
-      return response.json({
+      return response.status(200).json({
         reply,
         tokens,
         mode: "rnn_template",

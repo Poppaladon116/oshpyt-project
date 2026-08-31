@@ -1,59 +1,98 @@
 import koffi from "koffi";
+import { fileURLToPath } from "node:url";
 
-const lib = koffi.load("./oshpyt_engine.dll");
+const nativeLibraryPath = fileURLToPath(
+  new URL("../oshpyt_engine.dll", import.meta.url)
+);
 
-const oshpyt_init = lib.func("void oshpyt_init()");
+const lib = koffi.load(nativeLibraryPath);
+
+const oshpyt_init = lib.func(
+  "void oshpyt_init()"
+);
+
 const oshpyt_set_point = lib.func(
   "void oshpyt_set_point(float *data, int size, int index, float value)"
 );
+
 const oshpyt_malloc = lib.func(
   "float *oshpyt_malloc(int total_elements)"
 );
+
 const oshpyt_upload = lib.func(
-  "void oshpyt_upload(float *host_ptr, float *gpu_ptr, int size)"
+  "void oshpyt_upload(float *host_ptr, float *engine_ptr, int size)"
 );
+
 const oshpyt_download = lib.func(
-  "void oshpyt_download(void *gpu_ptr, float *host_ptr, int size)"
+  "void oshpyt_download(void *engine_ptr, float *host_ptr, int size)"
 );
+
 const oshpyt_matmul_to = lib.func(
   "void oshpyt_matmul_to(float *A, float *B, float *C, int m, int n, int k)"
 );
+
 const oshpyt_grad_input_to = lib.func(
   "void oshpyt_grad_input_to(float *grad_output, float *weights, float *grad_input, int m, int n, int k)"
 );
+
 const oshpyt_weight_grad_to = lib.func(
   "void oshpyt_weight_grad_to(float *input, float *grad_output, float *grad_weights, int m, int n, int k)"
 );
+
 const launch_sgd = lib.func(
-  "void launch_sgd(float *w, float *g, int size, float lr)"
+  "void launch_sgd(float *weights, float *gradients, int size, float learning_rate)"
 );
+
 const oshpyt_relu = lib.func(
   "void oshpyt_relu(float *data, int size)"
 );
-const oshpyt_relu_backward = lib.func(
-  "void oshpyt_relu_backward(float *pre_activation, float *gradient, int size)"
-);
-const oshpyt_add = lib.func(
-  "void oshpyt_add(float *A, float *B, int size)"
-);
+
 const oshpyt_softmax = lib.func(
   "void oshpyt_softmax(float *data, int size)"
 );
+
 const oshpyt_free = lib.func(
   "void oshpyt_free(void *ptr)"
 );
 
 export class Tensor {
-  ptr: any;
+  ptr: unknown;
   rows: number;
   cols: number;
   size: number;
 
-  constructor(ptr: any, rows: number, cols: number) {
+  constructor(ptr: unknown, rows: number, cols: number) {
+    if (!ptr) {
+      throw new Error(`Tensor allocation failed for ${rows}x${cols}.`);
+    }
+
+    if (
+      !Number.isInteger(rows) ||
+      !Number.isInteger(cols) ||
+      rows <= 0 ||
+      cols <= 0
+    ) {
+      throw new Error(`Invalid tensor shape: ${rows}x${cols}.`);
+    }
+
     this.ptr = ptr;
     this.rows = rows;
     this.cols = cols;
     this.size = rows * cols;
+  }
+
+  static allocate(rows: number, cols: number): Tensor {
+    if (
+      !Number.isInteger(rows) ||
+      !Number.isInteger(cols) ||
+      rows <= 0 ||
+      cols <= 0
+    ) {
+      throw new Error(`Invalid tensor shape: ${rows}x${cols}.`);
+    }
+
+    const ptr = oshpyt_malloc(rows * cols);
+    return new Tensor(ptr, rows, cols);
   }
 
   static fromArray(
@@ -61,39 +100,45 @@ export class Tensor {
     rows: number,
     cols: number
   ): Tensor {
-    if (data.length !== rows * cols) {
+    if (!(data instanceof Float32Array)) {
+      throw new TypeError("Tensor source data must be a Float32Array.");
+    }
+
+    const expectedSize = rows * cols;
+
+    if (data.length !== expectedSize) {
       throw new Error(
-        `fromArray size mismatch: got ${data.length}, ` +
-        `expected ${rows * cols}.`
+        `Tensor source mismatch: expected ${expectedSize}, got ${data.length}.`
       );
     }
 
-    const ptr = oshpyt_malloc(rows * cols);
+    const tensor = Tensor.allocate(rows, cols);
+    tensor.update(data);
 
-    if (!ptr) {
-      throw new Error("oshpyt_malloc failed.");
-    }
-
-    oshpyt_upload(data, ptr, data.length);
-
-    return new Tensor(ptr, rows, cols);
+    return tensor;
   }
 
-  static allocate(rows: number, cols: number): Tensor {
-    const ptr = oshpyt_malloc(rows * cols);
-
-    if (!ptr) {
-      throw new Error("oshpyt_malloc failed.");
+  private assertAlive(): void {
+    if (!this.ptr) {
+      throw new Error("Tensor has already been destroyed.");
     }
+  }
 
-    return new Tensor(ptr, rows, cols);
+  zero(): void {
+    this.assertAlive();
+    oshpyt_zero(this.ptr, this.size);
   }
 
   update(data: Float32Array): void {
+    this.assertAlive();
+
+    if (!(data instanceof Float32Array)) {
+      throw new TypeError("Tensor upload data must be a Float32Array.");
+    }
+
     if (data.length !== this.size) {
       throw new Error(
-        `update size mismatch: got ${data.length}, ` +
-        `expected ${this.size}.`
+        `Tensor upload mismatch: expected ${this.size}, got ${data.length}.`
       );
     }
 
@@ -101,32 +146,36 @@ export class Tensor {
   }
 
   setPoint(index: number, value = 1.0): void {
-    if (index < 0 || index >= this.size) {
-      throw new Error(
-        `setPoint index ${index} is outside tensor size ${this.size}.`
+    this.assertAlive();
+
+    if (!Number.isInteger(index) || index < 0 || index >= this.size) {
+      throw new RangeError(
+        `Tensor index ${index} is outside 0-${this.size - 1}.`
       );
+    }
+
+    if (!Number.isFinite(value)) {
+      throw new TypeError(`Tensor value must be finite; received ${value}.`);
     }
 
     oshpyt_set_point(this.ptr, this.size, index, value);
   }
 
-  add(other: Tensor): Tensor {
-    if (this.size !== other.size) {
-      throw new Error(
-        `add size mismatch: ${this.size} vs ${other.size}.`
-      );
-    }
-
-    oshpyt_add(this.ptr, other.ptr, this.size);
-
-    return this;
+  add(_other: Tensor): never {
+    throw new Error(
+      "Tensor.add is unavailable: the installed oshpyt_engine.dll does not export oshpyt_add."
+    );
   }
 
   matmulTo(weights: Tensor, target: Tensor): void {
+    this.assertAlive();
+    weights.assertAlive();
+    target.assertAlive();
+
     if (this.cols !== weights.rows) {
       throw new Error(
-        `matmul mismatch: (${this.rows}x${this.cols}) * ` +
-        `(${weights.rows}x${weights.cols}).`
+        `Matmul mismatch: ${this.rows}x${this.cols} cannot multiply ` +
+        `${weights.rows}x${weights.cols}.`
       );
     }
 
@@ -135,7 +184,7 @@ export class Tensor {
       target.cols !== weights.cols
     ) {
       throw new Error(
-        `matmul target must be ${this.rows}x${weights.cols}; got ` +
+        `Matmul target mismatch: expected ${this.rows}x${weights.cols}, got ` +
         `${target.rows}x${target.cols}.`
       );
     }
@@ -151,15 +200,19 @@ export class Tensor {
   }
 
   backwardTo(input: Tensor, gradOutput: Tensor): void {
+    this.assertAlive();
+    input.assertAlive();
+    gradOutput.assertAlive();
+
     if (
       input.rows !== gradOutput.rows ||
       this.rows !== input.cols ||
       this.cols !== gradOutput.cols
     ) {
       throw new Error(
-        `weight gradient mismatch: input ${input.rows}x${input.cols}, ` +
-        `grad ${gradOutput.rows}x${gradOutput.cols}, ` +
-        `weights ${this.rows}x${this.cols}.`
+        `Weight-gradient mismatch: input=${input.rows}x${input.cols}, ` +
+        `gradOutput=${gradOutput.rows}x${gradOutput.cols}, ` +
+        `gradWeights=${this.rows}x${this.cols}.`
       );
     }
 
@@ -174,15 +227,19 @@ export class Tensor {
   }
 
   gradInputTo(weights: Tensor, gradOutput: Tensor): void {
+    this.assertAlive();
+    weights.assertAlive();
+    gradOutput.assertAlive();
+
     if (
       gradOutput.cols !== weights.cols ||
       this.rows !== gradOutput.rows ||
       this.cols !== weights.rows
     ) {
       throw new Error(
-        `input gradient mismatch: grad ${gradOutput.rows}x${gradOutput.cols}, ` +
-        `weights ${weights.rows}x${weights.cols}, ` +
-        `target ${this.rows}x${this.cols}.`
+        `Input-gradient mismatch: gradOutput=${gradOutput.rows}x${gradOutput.cols}, ` +
+        `weights=${weights.rows}x${weights.cols}, ` +
+        `gradInput=${this.rows}x${this.cols}.`
       );
     }
 
@@ -196,48 +253,34 @@ export class Tensor {
     );
   }
 
-  leakyRelu(): Tensor {
+  relu(): void {
+    this.assertAlive();
     oshpyt_relu(this.ptr, this.size);
-    return this;
   }
 
-  relu(): Tensor {
-    return this.leakyRelu();
+  reluBackwardFrom(_activation: Tensor): never {
+    throw new Error(
+      "reluBackwardFrom is unavailable: the installed oshpyt_engine.dll does not export oshpyt_relu_backward."
+    );
   }
 
-  leakyReluBackward(preActivation: Tensor): Tensor {
-    if (this.size !== preActivation.size) {
+  softmax(): void {
+    this.assertAlive();
+    oshpyt_softmax(this.ptr, this.size);
+  }
+
+  optimizerStep(gradient: Tensor, learningRate: number): void {
+    this.assertAlive();
+    gradient.assertAlive();
+
+    if (this.size !== gradient.size) {
       throw new Error(
-        `leakyReluBackward mismatch: ${this.size} vs ${preActivation.size}.`
+        `SGD mismatch: weights=${this.size}, gradients=${gradient.size}.`
       );
     }
 
-    oshpyt_relu_backward(
-      preActivation.ptr,
-      this.ptr,
-      this.size
-    );
-
-    return this;
-  }
-
-  reluBackward(preActivation: Tensor): Tensor {
-    return this.leakyReluBackward(preActivation);
-  }
-
-  softmax(): Tensor {
-    oshpyt_softmax(this.ptr, this.size);
-    return this;
-  }
-
-  optimizerStep(
-    gradient: Tensor,
-    learningRate: number
-  ): void {
-    if (this.size !== gradient.size) {
-      throw new Error(
-        `optimizerStep mismatch: ${this.size} vs ${gradient.size}.`
-      );
+    if (!Number.isFinite(learningRate) || learningRate <= 0) {
+      throw new Error(`Invalid learning rate: ${learningRate}.`);
     }
 
     launch_sgd(
@@ -249,9 +292,12 @@ export class Tensor {
   }
 
   download(): Float32Array {
-    const host = new Float32Array(this.size);
-    oshpyt_download(this.ptr, host, this.size);
-    return host;
+    this.assertAlive();
+
+    const hostData = new Float32Array(this.size);
+    oshpyt_download(this.ptr, hostData, this.size);
+
+    return hostData;
   }
 
   destroy(): void {
