@@ -2,47 +2,71 @@
 
 
 
-\## Goal
-
-Expand the supported component vocabulary and deterministic renderer while preserving the v4.1 API contract.
-
-
-
 \## First component family
 
-Choose one:
 
-\- CARD
+
+BADGE
+
+
+
+\## Initial vocabulary
+
+
 
 \- BADGE
 
-\- INPUT
+\- COLOR\_BLUE
 
-\- NAVBAR
+\- COLOR\_GREEN
 
-\- MODAL
+\- COLOR\_RED
+
+\- COLOR\_YELLOW
+
+\- TEXT\_NEW
+
+\- TEXT\_SUCCESS
+
+\- TEXT\_ERROR
+
+\- TEXT\_WARNING
 
 
 
-\## Required changes
+\## Supported sequences
 
-\- Add tokens to training/component data
 
-\- Add valid component sequences
 
-\- Retrain or regenerate model artifacts
+\- COMPONENT\_START BADGE COLOR\_BLUE TEXT\_NEW COMPONENT\_END
 
-\- Update model metadata and vocabulary
+\- COMPONENT\_START BADGE COLOR\_GREEN TEXT\_SUCCESS COMPONENT\_END
 
-\- Add renderTokens templates
+\- COMPONENT\_START BADGE COLOR\_RED TEXT\_ERROR COMPONENT\_END
 
-\- Add API fixtures and expected HTML assertions
+\- COMPONENT\_START BADGE COLOR\_YELLOW TEXT\_WARNING COMPONENT\_END
 
-\- Preserve input rejection behavior
+
+
+\## Requirements
+
+
+
+\- BADGE must be a valid top-level component trigger.
+
+\- Each supported sequence must have a deterministic HTML template.
+
+\- The API fixture suite must include one case per badge variant.
+
+\- Unknown tokens, blank prompts, and prompts with no component trigger must retain the v4.1 rejection behavior.
+
+\- Retrained model metadata and weight artifacts must match the expanded vocabulary.
 
 
 
 \## Quality gates
+
+
 
 \- npm run test:api
 
