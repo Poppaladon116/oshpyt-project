@@ -3,6 +3,7 @@ import path from "node:path";
 import express from "express";
 import helmet from "helmet";
 import { Tensor } from "./OshpytTensor";
+import { randomUUID } from "node:crypto";
 
 const RNN_DEV_DIR = import.meta.dirname;
 const PORT = Number(process.env.PORT ?? 3003);
@@ -377,89 +378,102 @@ function main(): void {
     });
   });
 
-  app.post("/chat", (request, response) => {
-    const body = request.body as ChatRequest;
+app.post("/chat", (request, response) => {
+  const body = request.body as ChatRequest;
 
-    if (typeof body.text !== "string" || !body.text.trim()) {
+  if (typeof body.text !== "string" || !body.text.trim()) {
+    return response.status(400).json({
+      error: "Provide at least one supported prompt token.",
+    });
+  }
+
+  try {
+    const text = body.text.trim();
+
+    console.log("OSHPYT /chat received:", text);
+
+    const tokenized = tokenizePrompt(text, vocabulary);
+
+    if (tokenized.unknownTokens.length > 0) {
       return response.status(400).json({
-        error: "Provide at least one supported prompt token.",
+        error: "Unsupported prompt token(s).",
+        unknownTokens: tokenized.unknownTokens,
       });
     }
 
+    const componentTriggers = new Set([
+      "BUTTON",
+      "ALERT",
+      "OVOID_HEAD",
+      "CONTACT_FORM",
+      "ANIMATION",
+    ]);
+
+    const hasComponentTrigger = tokenized.tokens.some((token) =>
+      componentTriggers.has(token)
+    );
+
+    if (!hasComponentTrigger) {
+      return response.status(422).json({
+        error: "No valid component trigger detected.",
+      });
+    }
+
+    const timerLabel = `OSHPYT /chat generation ${randomUUID()}`;
+
+    console.time(timerLabel);
+
+    let tokens: string[];
+
     try {
-      const text = body.text.trim();
-
-      console.log("OSHPYT /chat received:", text);
-      console.time("OSHPYT /chat generation");
-
-      const tokenized = tokenizePrompt(text, vocabulary);
-
-      if (tokenized.unknownTokens.length > 0) {
-        return response.status(400).json({
-          error: "Unsupported prompt token(s).",
-          unknownTokens: tokenized.unknownTokens,
-        });
-      }
-
-      const promptTokens = tokenized.tokens;
-
-      if (promptTokens.length === 0) {
-        return response.status(400).json({
-          error: "No recognized RNN vocabulary tokens were found.",
-          vocabulary: meta.vocabulary.filter(
-            (token) =>
-              token !== "COMPONENT_START" && token !== "COMPONENT_END"
-          ),
-        });
-      }
-
-      const tokens = generateTokens(
-        promptTokens,
+      tokens = generateTokens(
+        tokenized.tokens,
         meta,
         vocabulary,
         Wx,
         Wh,
         Wo
       );
-
-      console.timeEnd("OSHPYT /chat generation");
-
-      const completed = tokens[tokens.length - 1] === "COMPONENT_END";
-
-      if (!completed) {
-        return response.status(422).json({
-          error: "Generation reached its token limit before COMPONENT_END.",
-          tokens,
-        });
-      }
-
-      const reply = renderTokens(tokens);
-
-      if (reply == null) {
-        return response.status(422).json({
-          error: "Generated tokens did not map to a supported component.",
-          tokens,
-        });
-      }
-
-      console.log(`RNN response: ${tokens.join(" -> ")}`);
-
-      return response.status(200).json({
-        reply,
-        tokens,
-        mode: "rnn_template",
-        stoppedAt: "COMPONENT_END",
-        promptTokens,
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unknown RNN server error.";
-
-      console.error("RNN error:", message);
-
-      return response.status(500).json({ error: message });
+    } finally {
+      console.timeEnd(timerLabel);
     }
-  });
+
+    const completed = tokens[tokens.length - 1] === "COMPONENT_END";
+
+    if (!completed) {
+      return response.status(422).json({
+        error: "Generation reached its token limit before COMPONENT_END.",
+        tokens,
+      });
+    }
+
+    const reply = renderTokens(tokens);
+
+    if (reply == null) {
+      return response.status(422).json({
+        error: "Generated tokens did not map to a supported component.",
+        tokens,
+      });
+    }
+
+    console.log(`RNN response: ${tokens.join(" -> ")}`);
+
+    return response.status(200).json({
+      reply,
+      tokens,
+      mode: "rnn_template",
+      stoppedAt: "COMPONENT_END",
+      promptTokens: tokenized.tokens,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown RNN server error.";
+
+    console.error("RNN error:", message);
+
+    return response.status(500).json({ error: message });
+  }
+}); 
 
   const server = app.listen(PORT, () => {
     console.log("OSHPYT RNN server active.");
