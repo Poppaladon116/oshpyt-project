@@ -126,80 +126,80 @@ describe("POST /chat — input rejection", () => {
   });
 
   test("rejects a missing text field", async () => {
-  const response = await postChat({});
-  const body = (await response.json()) as ErrorResponse;
+    const response = await postChat({});
+    const body = (await response.json()) as ErrorResponse;
 
-  expect(response.status).toBe(400);
-  expect(body.error).toBe("Provide at least one supported prompt token.");
-  expectNoInferencePayload(body);
-});
-
-test("rejects a non-string text field", async () => {
-  const response = await postChat({ text: 42 });
-  const body = (await response.json()) as ErrorResponse;
-
-  expect(response.status).toBe(400);
-  expect(body.error).toBe("Provide at least one supported prompt token.");
-  expectNoInferencePayload(body);
-});
-
-test("rejects whitespace-only text", async () => {
-  const response = await postChat({ text: " \t\r\n " });
-  const body = (await response.json()) as ErrorResponse;
-
-  expect(response.status).toBe(400);
-  expect(body.error).toBe("Provide at least one supported prompt token.");
-  expectNoInferencePayload(body);
-});
-
-test("rejects valid vocabulary tokens without a component trigger", async () => {
-  const response = await postChat({
-    text: "COLOR_BLUE TEXT_SAVE"
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("Provide at least one supported prompt token.");
+    expectNoInferencePayload(body);
   });
-  const body = (await response.json()) as ErrorResponse;
 
-  expect(response.status).toBe(422);
-  expect(body.error).toMatch(/prompt|trigger|component/i);
-  expectNoInferencePayload(body);
-});
+  test("rejects a non-string text field", async () => {
+    const response = await postChat({ text: 42 });
+    const body = (await response.json()) as ErrorResponse;
 
-test("rejects and reports multiple unknown tokens in order", async () => {
-  const response = await postChat({
-    text: "BUTTON COLOR_PURPLE PAD_GIANT"
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("Provide at least one supported prompt token.");
+    expectNoInferencePayload(body);
   });
-  const body = (await response.json()) as ErrorResponse;
 
-  expect(response.status).toBe(400);
-  expect(body.error).toBe("Unsupported prompt token(s).");
-  expect(body.unknownTokens).toEqual([
-    "COLOR_PURPLE",
-    "PAD_GIANT"
-  ]);
-  expectNoInferencePayload(body);
-});
+  test("rejects whitespace-only text", async () => {
+    const response = await postChat({ text: " \t\r\n " });
+    const body = (await response.json()) as ErrorResponse;
 
-test("rejects a valid component with an unknown prefix", async () => {
-  const response = await postChat({
-    text: "HACK BUTTON COLOR_BLUE"
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("Provide at least one supported prompt token.");
+    expectNoInferencePayload(body);
   });
-  const body = (await response.json()) as ErrorResponse;
 
-  expect(response.status).toBe(400);
-  expect(body.error).toBe("Unsupported prompt token(s).");
-  expect(body.unknownTokens).toEqual(["HACK"]);
-  expectNoInferencePayload(body);
-});
+  test("rejects valid vocabulary tokens without a component trigger", async () => {
+    const response = await postChat({
+      text: "COLOR_BLUE TEXT_SAVE"
+    });
+    const body = (await response.json()) as ErrorResponse;
 
-test("rejects markup and unsupported punctuation", async () => {
-  const response = await postChat({
-    text: "BUTTON COLOR_BLUE <script>alert(1)</script>"
+    expect(response.status).toBe(422);
+    expect(body.error).toBe("No valid component trigger detected.");
+    expectNoInferencePayload(body);
   });
-  const body = (await response.json()) as ErrorResponse;
 
-  expect(response.status).toBe(400);
-  expect(body.error).toBe("Unsupported prompt token(s).");
-  expect(body.unknownTokens).toBeDefined();
-  expect(body.unknownTokens!.length).toBeGreaterThan(0);
-  expectNoInferencePayload(body);
-});
+  test("rejects and reports multiple unknown tokens in order", async () => {
+    const response = await postChat({
+      text: "BUTTON COLOR_PURPLE PAD_GIANT"
+    });
+    const body = (await response.json()) as ErrorResponse;
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("Unsupported prompt token(s).");
+    expect(body.unknownTokens).toEqual([
+      "COLOR_PURPLE",
+      "PAD_GIANT"
+    ]);
+    expectNoInferencePayload(body);
+  });
+
+  test("rejects a valid component with an unknown prefix", async () => {
+    const response = await postChat({
+      text: "HACK BUTTON COLOR_BLUE"
+    });
+    const body = (await response.json()) as ErrorResponse;
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("Unsupported prompt token(s).");
+    expect(body.unknownTokens).toEqual(["HACK"]);
+    expectNoInferencePayload(body);
+  });
+
+  test("rejects markup and unsupported punctuation", async () => {
+    const response = await postChat({
+      text: "BUTTON COLOR_BLUE <script>alert(1)</script>"
+    });
+    const body = (await response.json()) as ErrorResponse;
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("Unsupported prompt token(s).");
+    expect(body.unknownTokens).toBeDefined();
+    expect(body.unknownTokens!.length).toBeGreaterThan(0);
+    expectNoInferencePayload(body);
+  });
 });
