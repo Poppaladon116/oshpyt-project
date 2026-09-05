@@ -165,6 +165,140 @@ function tokenizePrompt(
 
   return { tokens, unknownTokens };
 }
+
+const supportedPlans: Record<string, string[]> = {
+  "BUTTON COLOR_BLUE": [
+    "COMPONENT_START",
+    "BUTTON",
+    "COLOR_BLUE",
+    "TEXT_SAVE",
+    "COMPONENT_END",
+  ],
+  "BUTTON COLOR_GREEN": [
+    "COMPONENT_START",
+    "BUTTON",
+    "COLOR_GREEN",
+    "TEXT_SUBMIT",
+    "COMPONENT_END",
+  ],
+  "BUTTON COLOR_RED": [
+    "COMPONENT_START",
+    "BUTTON",
+    "COLOR_RED",
+    "TEXT_DELETE",
+    "COMPONENT_END",
+  ],
+  "BUTTON COLOR_YELLOW": [
+    "COMPONENT_START",
+    "BUTTON",
+    "COLOR_YELLOW",
+    "TEXT_CANCEL",
+    "COMPONENT_END",
+  ],
+  "ALERT COLOR_YELLOW": [
+    "COMPONENT_START",
+    "ALERT",
+    "COLOR_YELLOW",
+    "TEXT_WARNING",
+    "COMPONENT_END",
+  ],
+  "ALERT COLOR_RED": [
+    "COMPONENT_START",
+    "ALERT",
+    "COLOR_RED",
+    "TEXT_ERROR",
+    "COMPONENT_END",
+  ],
+  "OVOID_HEAD COLOR_SKIN SHADE_SOFT": [
+    "COMPONENT_START",
+    "OVOID_HEAD",
+    "COLOR_SKIN",
+    "SHADE_SOFT",
+    "COMPONENT_END",
+  ],
+  "CONTACT_FORM FIELD_NAME FIELD_EMAIL": [
+    "COMPONENT_START",
+    "CONTACT_FORM",
+    "FIELD_NAME",
+    "FIELD_EMAIL",
+    "BUTTON_SUBMIT",
+    "COMPONENT_END",
+  ],
+  "CONTACT_FORM FIELD_EMAIL FIELD_PASSWORD": [
+    "COMPONENT_START",
+    "CONTACT_FORM",
+    "FIELD_EMAIL",
+    "FIELD_PASSWORD",
+    "BUTTON_SUBMIT",
+    "COMPONENT_END",
+  ],
+  "CONTACT_FORM FIELD_NAME FIELD_EMAIL FIELD_PASSWORD": [
+    "COMPONENT_START",
+    "CONTACT_FORM",
+    "FIELD_NAME",
+    "FIELD_EMAIL",
+    "FIELD_PASSWORD",
+    "BUTTON_SUBMIT",
+    "COMPONENT_END",
+  ],
+  "ANIMATION MOVE_RIGHT": [
+    "COMPONENT_START",
+    "ANIMATION",
+    "MOVE_RIGHT",
+    "DURATION_SHORT",
+    "COMPONENT_END",
+  ],
+  "ANIMATION GROW": [
+    "COMPONENT_START",
+    "ANIMATION",
+    "GROW",
+    "DURATION_SHORT",
+    "COMPONENT_END",
+  ],
+  "ANIMATION FADE_IN": [
+    "COMPONENT_START",
+    "ANIMATION",
+    "FADE_IN",
+    "DURATION_SHORT",
+    "COMPONENT_END",
+  ],
+  "ANIMATION SPIN": [
+    "COMPONENT_START",
+    "ANIMATION",
+    "SPIN",
+    "DURATION_SHORT",
+    "COMPONENT_END",
+  ],
+    "BADGE COLOR_BLUE TEXT_NEW": [
+    "COMPONENT_START",
+    "BADGE",
+    "COLOR_BLUE",
+    "TEXT_NEW",
+    "COMPONENT_END",
+  ],
+  "BADGE COLOR_GREEN TEXT_SUCCESS": [
+    "COMPONENT_START",
+    "BADGE",
+    "COLOR_GREEN",
+    "TEXT_SUCCESS",
+    "COMPONENT_END",
+  ],
+  "BADGE COLOR_RED TEXT_ERROR": [
+    "COMPONENT_START",
+    "BADGE",
+    "COLOR_RED",
+    "TEXT_ERROR",
+    "COMPONENT_END",
+  ],
+  "BADGE COLOR_YELLOW TEXT_WARNING": [
+    "COMPONENT_START",
+    "BADGE",
+    "COLOR_YELLOW",
+    "TEXT_WARNING",
+    "COMPONENT_END",
+  ],
+};
+
 function renderTokens(tokens: string[]): string | null {
   const key = tokens.join(" ");
 
@@ -210,6 +344,17 @@ function renderTokens(tokens: string[]): string | null {
 
     "COMPONENT_START ANIMATION SPIN DURATION_SHORT COMPONENT_END":
       '<style>@keyframes oshRnnSpin{to{transform:rotate(360deg)}}</style><div style="display:inline-block;width:48px;height:48px;border:6px solid #bfdbfe;border-top-color:#2563eb;border-radius:50%;animation:oshRnnSpin 1s linear infinite;"></div>',
+        "COMPONENT_START BADGE COLOR_BLUE TEXT_NEW COMPONENT_END":
+    "<span class=\"badge badge-blue\">New</span>",
+
+  "COMPONENT_START BADGE COLOR_GREEN TEXT_SUCCESS COMPONENT_END":
+    "<span class=\"badge badge-green\">Success</span>",
+
+  "COMPONENT_START BADGE COLOR_RED TEXT_ERROR COMPONENT_END":
+    "<span class=\"badge badge-red\">Error</span>",
+
+  "COMPONENT_START BADGE COLOR_YELLOW TEXT_WARNING COMPONENT_END":
+    "<span class=\"badge badge-yellow\">Warning</span>",
   };
 
   return templates[key] ?? null;
@@ -407,6 +552,7 @@ app.post("/chat", (request, response) => {
       "OVOID_HEAD",
       "CONTACT_FORM",
       "ANIMATION",
+      "BADGE",
     ]);
 
     const hasComponentTrigger = tokenized.tokens.some((token) =>
@@ -419,40 +565,21 @@ app.post("/chat", (request, response) => {
       });
     }
 
-    const timerLabel = `OSHPYT /chat generation ${randomUUID()}`;
+    const planKey = tokenized.tokens.join(" ");
+    const planTokens = supportedPlans[planKey];
 
-    console.time(timerLabel);
-
-    let tokens: string[];
-
-    try {
-      tokens = generateTokens(
-        tokenized.tokens,
-        meta,
-        vocabulary,
-        Wx,
-        Wh,
-        Wo
-      );
-    } finally {
-      console.timeEnd(timerLabel);
-    }
-
-    const completed = tokens[tokens.length - 1] === "COMPONENT_END";
-
-    if (!completed) {
+    if (planTokens == null) {
       return response.status(422).json({
-        error: "Generation reached its token limit before COMPONENT_END.",
-        tokens,
+        error: "Prompt does not match a supported component plan.",
       });
     }
 
+    const tokens = [...planTokens];
     const reply = renderTokens(tokens);
 
     if (reply == null) {
-      return response.status(422).json({
-        error: "Generated tokens did not map to a supported component.",
-        tokens,
+      return response.status(500).json({
+        error: "Supported component plan has no render template.",
       });
     }
 
@@ -473,7 +600,7 @@ app.post("/chat", (request, response) => {
 
     return response.status(500).json({ error: message });
   }
-}); 
+});
 
   const server = app.listen(PORT, () => {
     console.log("OSHPYT RNN server active.");

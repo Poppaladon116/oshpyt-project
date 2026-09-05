@@ -36,7 +36,7 @@ function randomWeights(size: number, scale = 0.08): Float32Array {
   const values = new Float32Array(size);
 
   for (let i = 0; i < values.length; i++) {
-    values[i] = (Math.random() * 2 - 1) * scale;
+   values[i] = (Math.random() * 2 - 1) * scale;
   }
 
   return values;
@@ -104,6 +104,37 @@ function clipGradient(
 
   for (let i = 0; i < values.length; i++) {
     result[i] = Math.max(-limit, Math.min(limit, values[i]));
+  }
+
+  return result;
+}
+
+function leakyReluValues(values: Float32Array): Float32Array {
+  const result = new Float32Array(values.length);
+
+  for (let i = 0; i < values.length; i++) {
+    result[i] = values[i] >= 0
+      ? values[i]
+      : values[i] * NEGATIVE_SLOPE;
+  }
+
+  return result;
+}
+
+function leakyReluGradient(
+  gradient: Float32Array,
+  preActivation: Float32Array
+): Float32Array {
+  if (gradient.length !== preActivation.length) {
+    fail("Leaky ReLU gradient length mismatch.");
+  }
+
+  const result = new Float32Array(gradient.length);
+
+  for (let i = 0; i < gradient.length; i++) {
+    result[i] = gradient[i] * (
+      preActivation[i] >= 0 ? 1 : NEGATIVE_SLOPE
+    );
   }
 
   return result;
@@ -239,7 +270,11 @@ function loadTrainingData(): ValidatedTrainingData {
     return sequence.map((token, tokenIndex) => {
       if (typeof token !== "string" || token.trim() === "") {
         fail(
-          "promptSequences[" + index + "][" + tokenIndex + "] is invalid."
+          "promptSequences[" +
+            index +
+            "][" +
+            tokenIndex +
+            "] is invalid."
         );
       }
 
@@ -364,9 +399,12 @@ function advanceHiddenState(
     input.matmulTo(Wx, inputPart);
     hidden.matmulTo(Wh, memoryPart);
 
-    nextHidden.update(inputPart.download());
-    nextHidden.add(memoryPart);
-    nextHidden.leakyRelu();
+    const preActivation = addArrays(
+      inputPart.download(),
+      memoryPart.download()
+    );
+
+    nextHidden.update(leakyReluValues(preActivation));
 
     return nextHidden;
   } finally {
@@ -506,11 +544,13 @@ function main(): void {
               input.matmulTo(Wx, inputPart);
               previousHidden.matmulTo(Wh, memoryPart);
 
-              preActivation.update(inputPart.download());
-              preActivation.add(memoryPart);
+              preActivation.update(
+                addArrays(inputPart.download(), memoryPart.download())
+              );
 
-              hidden.update(preActivation.download());
-              hidden.leakyRelu();
+              hidden.update(
+                leakyReluValues(preActivation.download())
+              );
 
               hidden.matmulTo(Wo, output);
               output.softmax();
@@ -561,8 +601,12 @@ function main(): void {
                 futureHiddenGradient
               );
 
-              dPreActivation.update(combinedHiddenGradient);
-              dPreActivation.leakyReluBackward(preActivations[step]);
+              dPreActivation.update(
+                leakyReluGradient(
+                  combinedHiddenGradient,
+                  preActivations[step].download()
+                )
+              );
 
               dWxStep.backwardTo(inputs[step], dPreActivation);
               addInto(dWxHost, dWxStep.download());
@@ -637,7 +681,7 @@ function main(): void {
       }
     }
 
-        console.log("");
+    console.log("");
     console.log("--- PROMPT VALIDATION ---");
 
     let passedPlans = 0;
@@ -683,7 +727,17 @@ function main(): void {
         " exact matches"
     );
 
-	const meta = {
+       if (passedPlans !== data.indexedPromptSequences.length) {
+      fail(
+        "prompt validation failed: " +
+          passedPlans +
+          "/" +
+          data.indexedPromptSequences.length +
+          " exact matches; refusing to save checkpoint."
+      );
+    }
+
+    const meta = {
       architecture: "single_layer_leaky_relu_rnn",
       activation: "leaky_relu",
       negativeSlope: NEGATIVE_SLOPE,

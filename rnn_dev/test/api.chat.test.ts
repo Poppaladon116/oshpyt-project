@@ -202,4 +202,14 @@ describe("POST /chat — input rejection", () => {
     expect(body.unknownTokens!.length).toBeGreaterThan(0);
     expectNoInferencePayload(body);
   });
+  test("rejects a valid but unsupported component plan", async () => {
+  const response = await postChat({
+    text: "BADGE COLOR_BLUE TEXT_SAVE"
+  });
+  const body = (await response.json()) as ErrorResponse;
+
+  expect(response.status).toBe(422);
+  expect(body.error).toBe("Prompt does not match a supported component plan.");
+  expectNoInferencePayload(body);
+  });
 });
