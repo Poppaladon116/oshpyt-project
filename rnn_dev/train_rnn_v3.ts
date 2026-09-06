@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import * as path from "path";
 import { Tensor } from "./OshpytTensor";
 
 type ValidatedTrainingData = {
@@ -14,9 +15,22 @@ type ValidatedTrainingData = {
   maxGenerationTokens: number;
 };
 
-const MODEL_DIR = "models/multi_v4_email_first";
+const PROJECT_ROOT = process.cwd();
+
+const MODEL_DIR = path.join(
+  PROJECT_ROOT,
+  "rnn_dev",
+  "models",
+  "multi_v4_email_first"
+);
+
 const TRAINING_DATA_PATH =
-  process.env.TRAINING_DATA_PATH || "components_v3.validated.json";
+  process.env.TRAINING_DATA_PATH ||
+  path.join(
+    PROJECT_ROOT,
+    "rnn_dev",
+    "components_v4_email_first.validated.json"
+  );
 
 const HIDDEN_SIZE = 48;
 const EPOCHS = 4000;
@@ -35,8 +49,8 @@ function zeros(size: number): Float32Array {
 function randomWeights(size: number, scale = 0.08): Float32Array {
   const values = new Float32Array(size);
 
-  for (let i = 0; i < values.length; i++) {
-   values[i] = (Math.random() * 2 - 1) * scale;
+  for (let index = 0; index < values.length; index++) {
+    values[index] = (Math.random() * 2 - 1) * scale;
   }
 
   return values;
@@ -52,18 +66,15 @@ function oneHot(tokenId: number, vocabularySize: number): Float32Array {
   return result;
 }
 
-function addArrays(
-  left: Float32Array,
-  right: Float32Array
-): Float32Array {
+function addArrays(left: Float32Array, right: Float32Array): Float32Array {
   if (left.length !== right.length) {
     fail("array length mismatch.");
   }
 
   const result = new Float32Array(left.length);
 
-  for (let i = 0; i < result.length; i++) {
-    result[i] = left[i] + right[i];
+  for (let index = 0; index < result.length; index++) {
+    result[index] = left[index] + right[index];
   }
 
   return result;
@@ -74,8 +85,8 @@ function addInto(target: Float32Array, source: Float32Array): void {
     fail("gradient array length mismatch.");
   }
 
-  for (let i = 0; i < target.length; i++) {
-    target[i] += source[i];
+  for (let index = 0; index < target.length; index++) {
+    target[index] += source[index];
   }
 }
 
@@ -96,14 +107,11 @@ function subtractOneHot(
   return result;
 }
 
-function clipGradient(
-  values: Float32Array,
-  limit: number
-): Float32Array {
+function clipGradient(values: Float32Array, limit: number): Float32Array {
   const result = new Float32Array(values.length);
 
-  for (let i = 0; i < values.length; i++) {
-    result[i] = Math.max(-limit, Math.min(limit, values[i]));
+  for (let index = 0; index < values.length; index++) {
+    result[index] = Math.max(-limit, Math.min(limit, values[index]));
   }
 
   return result;
@@ -112,10 +120,9 @@ function clipGradient(
 function leakyReluValues(values: Float32Array): Float32Array {
   const result = new Float32Array(values.length);
 
-  for (let i = 0; i < values.length; i++) {
-    result[i] = values[i] >= 0
-      ? values[i]
-      : values[i] * NEGATIVE_SLOPE;
+  for (let index = 0; index < values.length; index++) {
+    result[index] =
+      values[index] >= 0 ? values[index] : values[index] * NEGATIVE_SLOPE;
   }
 
   return result;
@@ -131,10 +138,10 @@ function leakyReluGradient(
 
   const result = new Float32Array(gradient.length);
 
-  for (let i = 0; i < gradient.length; i++) {
-    result[i] = gradient[i] * (
-      preActivation[i] >= 0 ? 1 : NEGATIVE_SLOPE
-    );
+  for (let index = 0; index < gradient.length; index++) {
+    result[index] =
+      gradient[index] *
+      (preActivation[index] >= 0 ? 1 : NEGATIVE_SLOPE);
   }
 
   return result;
@@ -144,10 +151,10 @@ function argmax(values: Float32Array): number {
   let bestIndex = 0;
   let bestValue = -Infinity;
 
-  for (let i = 0; i < values.length; i++) {
-    if (values[i] > bestValue) {
-      bestValue = values[i];
-      bestIndex = i;
+  for (let index = 0; index < values.length; index++) {
+    if (values[index] > bestValue) {
+      bestValue = values[index];
+      bestIndex = index;
     }
   }
 
@@ -242,6 +249,16 @@ function loadTrainingData(): ValidatedTrainingData {
     return token;
   });
 
+  const tokenToId: Record<string, number> = {};
+
+  vocabulary.forEach((token, index) => {
+    if (tokenToId[token] !== undefined) {
+      fail("duplicate vocabulary token: " + token);
+    }
+
+    tokenToId[token] = index;
+  });
+
   const trainingSequences = data.trainingSequences.map((sequence, index) => {
     if (!Array.isArray(sequence) || sequence.length < 2) {
       fail("trainingSequences[" + index + "] is invalid.");
@@ -256,6 +273,10 @@ function loadTrainingData(): ValidatedTrainingData {
             tokenIndex +
             "] is invalid."
         );
+      }
+
+      if (tokenToId[token] === undefined) {
+        fail("unknown training token: " + token);
       }
 
       return token;
@@ -276,6 +297,10 @@ function loadTrainingData(): ValidatedTrainingData {
             tokenIndex +
             "] is invalid."
         );
+      }
+
+      if (tokenToId[token] === undefined) {
+        fail("unknown prompt token: " + token);
       }
 
       return token;
@@ -360,12 +385,6 @@ function loadTrainingData(): ValidatedTrainingData {
     }
   );
 
-  const tokenToId: Record<string, number> = {};
-
-  vocabulary.forEach((token, index) => {
-    tokenToId[token] = index;
-  });
-
   return {
     version: typeof data.version === "string" ? data.version : "multi_v3",
     description:
@@ -405,7 +424,6 @@ function advanceHiddenState(
     );
 
     nextHidden.update(leakyReluValues(preActivation));
-
     return nextHidden;
   } finally {
     input.destroy();
@@ -477,16 +495,71 @@ function generateFromPrompt(
   }
 }
 
+function buildPromptConditionedSequence(
+  promptIds: number[],
+  planIds: number[]
+): number[] {
+  const componentStartIndex = planIds.indexOf(0);
+
+  if (componentStartIndex !== 0) {
+    fail("training plan must begin with COMPONENT_START.");
+  }
+
+  const planWithoutStart = planIds.slice(1);
+  const promptKey = promptIds.join("|");
+  const planPrefix = planWithoutStart.slice(0, promptIds.length).join("|");
+
+  if (promptKey !== planPrefix) {
+    fail(
+      "prompt must match the beginning of its component plan: prompt IDs [" +
+        promptKey +
+        "], plan prefix IDs [" +
+        planPrefix +
+        "]"
+    );
+  }
+
+  return [...promptIds, ...planWithoutStart.slice(promptIds.length)];
+}
+
+function validatePromptMappings(data: ValidatedTrainingData): void {
+  const expectedByPrompt = new Map<string, string>();
+
+  for (let index = 0; index < data.promptSequences.length; index++) {
+    const promptKey = data.promptSequences[index].join("|");
+    const expectedKey = data.trainingSequences[index].join("|");
+    const priorExpected = expectedByPrompt.get(promptKey);
+
+    if (priorExpected !== undefined && priorExpected !== expectedKey) {
+      fail(
+        "ambiguous prompt maps to multiple plans: " +
+          data.promptSequences[index].join(" -> ")
+      );
+    }
+
+    expectedByPrompt.set(promptKey, expectedKey);
+  }
+}
+
 function main(): void {
   const data = loadTrainingData();
+  validatePromptMappings(data);
+
   const TOKENS = data.vocabulary;
   const VOCAB_SIZE = data.vocabularySize;
-  const TRAINING_SEQUENCES = data.indexedTrainingSequences;
+
+  const promptConditionedSequences = data.indexedTrainingSequences.map(
+    (planIds, index) =>
+      buildPromptConditionedSequence(
+        data.indexedPromptSequences[index],
+        planIds
+      )
+  );
 
   console.log("--- OSHPYT RNN LAB: V3 MULTI-SEQUENCE BPTT ---");
   console.log("Dataset: " + TRAINING_DATA_PATH);
   console.log("Version: " + data.version);
-  console.log("Examples: " + TRAINING_SEQUENCES.length);
+  console.log("Examples: " + promptConditionedSequences.length);
   console.log("Vocabulary size: " + VOCAB_SIZE);
   console.log("Hidden size: " + HIDDEN_SIZE);
   console.log("Output directory: " + MODEL_DIR);
@@ -519,7 +592,7 @@ function main(): void {
       const dWhHost = zeros(HIDDEN_SIZE * HIDDEN_SIZE);
       const dWoHost = zeros(HIDDEN_SIZE * VOCAB_SIZE);
 
-      for (const sequence of TRAINING_SEQUENCES) {
+      for (const sequence of promptConditionedSequences) {
         const inputs: Tensor[] = [];
         const previousHiddenStates: Tensor[] = [];
         const preActivations: Tensor[] = [];
@@ -548,16 +621,16 @@ function main(): void {
                 addArrays(inputPart.download(), memoryPart.download())
               );
 
-              hidden.update(
-                leakyReluValues(preActivation.download())
-              );
+              hidden.update(leakyReluValues(preActivation.download()));
 
               hidden.matmulTo(Wo, output);
               output.softmax();
 
               const outputValues = output.download();
 
-              totalLoss -= Math.log(probabilityOf(outputValues, targetToken));
+              totalLoss -= Math.log(
+                probabilityOf(outputValues, targetToken)
+              );
               totalPredictions++;
 
               if (argmax(outputValues) === targetToken) {
@@ -580,7 +653,10 @@ function main(): void {
 
           for (let step = targets.length - 1; step >= 0; step--) {
             const outputGradient = makeRow(
-              subtractOneHot(probabilities[step].download(), targets[step])
+              subtractOneHot(
+                probabilities[step].download(),
+                targets[step]
+              )
             );
 
             const dWoStep = Tensor.allocate(HIDDEN_SIZE, VOCAB_SIZE);
@@ -706,6 +782,31 @@ function main(): void {
 
       if (matches) {
         passedPlans++;
+      } else {
+        const firstWrong = expected.findIndex(
+          (token, position) => token !== generatedWithStart[position]
+        );
+
+        console.error("\n--- VALIDATION MISS ---");
+        console.error("plan index:", index);
+        console.error(
+          "prompt:",
+          data.promptSequences[index].join(" -> ")
+        );
+        console.error("expected:", expected.join(" -> "));
+        console.error("generated:", generatedWithStart.join(" -> "));
+        console.error(
+          "first wrong token position:",
+          firstWrong === -1 ? "length mismatch" : firstWrong
+        );
+        console.error(
+          "expected token:",
+          expected[firstWrong] ?? "<END>"
+        );
+        console.error(
+          "generated token:",
+          generatedWithStart[firstWrong] ?? "<END>"
+        );
       }
 
       console.log(
@@ -727,7 +828,7 @@ function main(): void {
         " exact matches"
     );
 
-       if (passedPlans !== data.indexedPromptSequences.length) {
+    if (passedPlans !== data.indexedPromptSequences.length) {
       fail(
         "prompt validation failed: " +
           passedPlans +
@@ -757,22 +858,22 @@ function main(): void {
 
     fs.mkdirSync(MODEL_DIR, { recursive: true });
 
-    saveTensor(MODEL_DIR + "/rnn_Wx.bin", Wx);
-    saveTensor(MODEL_DIR + "/rnn_Wh.bin", Wh);
-    saveTensor(MODEL_DIR + "/rnn_Wo.bin", Wo);
+    saveTensor(path.join(MODEL_DIR, "rnn_Wx.bin"), Wx);
+    saveTensor(path.join(MODEL_DIR, "rnn_Wh.bin"), Wh);
+    saveTensor(path.join(MODEL_DIR, "rnn_Wo.bin"), Wo);
 
     fs.writeFileSync(
-      MODEL_DIR + "/rnn_meta.json",
+      path.join(MODEL_DIR, "rnn_meta.json"),
       JSON.stringify(meta, null, 2) + "\n",
       "utf8"
     );
 
     console.log("");
     console.log("SUCCESS: V3 multi-sequence RNN checkpoint saved.");
-    console.log("Saved: " + MODEL_DIR + "/rnn_Wx.bin");
-    console.log("Saved: " + MODEL_DIR + "/rnn_Wh.bin");
-    console.log("Saved: " + MODEL_DIR + "/rnn_Wo.bin");
-    console.log("Saved: " + MODEL_DIR + "/rnn_meta.json");
+    console.log("Saved: " + path.join(MODEL_DIR, "rnn_Wx.bin"));
+    console.log("Saved: " + path.join(MODEL_DIR, "rnn_Wh.bin"));
+    console.log("Saved: " + path.join(MODEL_DIR, "rnn_Wo.bin"));
+    console.log("Saved: " + path.join(MODEL_DIR, "rnn_meta.json"));
   } finally {
     Wx.destroy();
     Wh.destroy();
