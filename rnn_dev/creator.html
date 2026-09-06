@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Oshpyt Creator</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      background: #0b1020;
+      color: #e5e7eb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, #1e3a8a 0, transparent 32rem),
+        #0b1020;
+    }
+
+    main {
+      width: min(1200px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 36px 0;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 5vw, 3.25rem);
+    }
+
+    .subtitle {
+      margin: 10px 0 28px;
+      color: #a5b4fc;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+      gap: 18px;
+    }
+
+    .card {
+      padding: 20px;
+      border: 1px solid #26345f;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.92);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 1rem;
+      color: #c7d2fe;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    textarea {
+      display: block;
+      width: 100%;
+      min-height: 110px;
+      resize: vertical;
+      padding: 14px;
+      border: 1px solid #40518a;
+      border-radius: 10px;
+      background: #070b16;
+      color: #f8fafc;
+      font: 0.95rem/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .generate {
+      width: 100%;
+      margin-top: 12px;
+      padding: 12px 16px;
+      border: 0;
+      border-radius: 10px;
+      background: #4f46e5;
+      color: white;
+      font-weight: 800;
+    }
+
+    .generate:hover {
+      background: #6366f1;
+    }
+
+    .generate:disabled {
+      cursor: wait;
+      opacity: 0.65;
+    }
+
+    .examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .example {
+      padding: 8px 10px;
+      border: 1px solid #40518a;
+      border-radius: 999px;
+      background: #151d38;
+      color: #c7d2fe;
+      font-size: 0.82rem;
+    }
+
+    .example:hover {
+      background: #25315e;
+    }
+
+    pre {
+      min-height: 130px;
+      margin: 0;
+      overflow: auto;
+      padding: 14px;
+      border-radius: 10px;
+      background: #070b16;
+      color: #a7f3d0;
+      font: 0.88rem/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+      white-space: pre-wrap;
+    }
+
+    iframe {
+      display: block;
+      width: 100%;
+      min-height: 390px;
+      border: 1px solid #40518a;
+      border-radius: 10px;
+      background: white;
+    }
+
+    .status {
+      min-height: 24px;
+      margin: 12px 0 0;
+      color: #93c5fd;
+    }
+
+    .status.error {
+      color: #fca5a5;
+    }
+
+    @media (max-width: 820px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Oshpyt Creator</h1>
+    <p class="subtitle">
+      Generate validated UI components with your local RNN.
+    </p>
+
+    <section class="workspace">
+      <div class="card">
+        <h2>Prompt</h2>
+
+        <textarea id="prompt" spellcheck="false">CONTACT_FORM FIELD_NAME FIELD_EMAIL</textarea>
+
+        <button id="generate" class="generate">Generate component</button>
+
+        <p id="status" class="status">
+          Server target: http://localhost:3003/chat
+        </p>
+
+        <div class="examples">
+          <button class="example" data-prompt="BUTTON COLOR_BLUE">
+            Blue save button
+          </button>
+          <button class="example" data-prompt="BUTTON COLOR_GREEN">
+            Green submit button
+          </button>
+          <button class="example" data-prompt="ALERT COLOR_YELLOW">
+            Warning alert
+          </button>
+          <button class="example" data-prompt="CONTACT_FORM FIELD_NAME FIELD_EMAIL">
+            Basic contact form
+          </button>
+          <button class="example" data-prompt="CONTACT_FORM FIELD_NAME FIELD_EMAIL FIELD_PASSWORD">
+            Password contact form
+          </button>
+          <button class="example" data-prompt="BADGE COLOR_BLUE">
+            New blue badge
+          </button>
+          <button class="example" data-prompt="ANIMATION FADE_IN">
+            Fade-in animation
+          </button>
+        </div>
+
+        <h2 style="margin-top: 24px;">Generated plan</h2>
+        <pre id="tokens">No generation yet.</pre>
+      </div>
+
+      <div class="card">
+        <h2>Live preview</h2>
+        <iframe
+          id="preview"
+          title="Generated Oshpyt component preview"
+          sandbox="allow-forms"
+        ></iframe>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const endpoint = "/chat";
+
+    const prompt = document.getElementById("prompt");
+    const generateButton = document.getElementById("generate");
+    const status = document.getElementById("status");
+    const tokens = document.getElementById("tokens");
+    const preview = document.getElementById("preview");
+
+    function setStatus(message, isError = false) {
+      status.textContent = message;
+      status.classList.toggle("error", isError);
+    }
+
+    async function generate() {
+      const text = prompt.value.trim();
+
+      if (!text) {
+        setStatus("Enter at least one supported prompt token.", true);
+        return;
+      }
+
+      generateButton.disabled = true;
+      setStatus("Generating validated component plan...");
+
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ text })
+        });
+
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload.error || "The server rejected this prompt.");
+        }
+
+        tokens.textContent = payload.tokens.join(" -> ");
+        preview.srcdoc = payload.reply;
+
+        setStatus(
+          "Generated via " +
+            payload.mode +
+            "; stopped at " +
+            payload.stoppedAt +
+            "."
+        );
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Unknown request error.";
+
+        tokens.textContent = "No valid plan generated.";
+        preview.srcdoc = "";
+        setStatus(message, true);
+      } finally {
+        generateButton.disabled = false;
+      }
+    }
+
+    generateButton.addEventListener("click", generate);
+
+    prompt.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        generate();
+      }
+    });
+
+    document.querySelectorAll("[data-prompt]").forEach((button) => {
+      button.addEventListener("click", () => {
+        prompt.value = button.dataset.prompt;
+        generate();
+      });
+    });
+
+    generate();
+  </script>
+</body>
+</html>

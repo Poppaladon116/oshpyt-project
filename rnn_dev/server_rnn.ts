@@ -344,19 +344,19 @@ function renderTokens(tokens: string[]): string | null {
 
     "COMPONENT_START ANIMATION SPIN DURATION_SHORT COMPONENT_END":
       '<style>@keyframes oshRnnSpin{to{transform:rotate(360deg)}}</style><div style="display:inline-block;width:48px;height:48px;border:6px solid #bfdbfe;border-top-color:#2563eb;border-radius:50%;animation:oshRnnSpin 1s linear infinite;"></div>',
-        "COMPONENT_START BADGE COLOR_BLUE TEXT_NEW COMPONENT_END":
-    "<span class=\"badge badge-blue\">New</span>",
 
-  "COMPONENT_START BADGE COLOR_GREEN TEXT_SUCCESS COMPONENT_END":
-    "<span class=\"badge badge-green\">Success</span>",
+    "COMPONENT_START BADGE COLOR_BLUE TEXT_NEW COMPONENT_END":
+  '<span style="display:inline-block;padding:4px 10px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font:700 12px/1 Arial,sans-serif;">New</span>',
 
-  "COMPONENT_START BADGE COLOR_RED TEXT_ERROR COMPONENT_END":
-    "<span class=\"badge badge-red\">Error</span>",
+"COMPONENT_START BADGE COLOR_GREEN TEXT_SUCCESS COMPONENT_END":
+  '<span style="display:inline-block;padding:4px 10px;border-radius:999px;background:#dcfce7;color:#15803d;font:700 12px/1 Arial,sans-serif;">Success</span>',
 
-  "COMPONENT_START BADGE COLOR_YELLOW TEXT_WARNING COMPONENT_END":
-    "<span class=\"badge badge-yellow\">Warning</span>",
-  };
+"COMPONENT_START BADGE COLOR_RED TEXT_ERROR COMPONENT_END":
+  '<span style="display:inline-block;padding:4px 10px;border-radius:999px;background:#fee2e2;color:#b91c1c;font:700 12px/1 Arial,sans-serif;">Error</span>',
 
+"COMPONENT_START BADGE COLOR_YELLOW TEXT_WARNING COMPONENT_END":
+  '<span style="display:inline-block;padding:4px 10px;border-radius:999px;background:#fef3c7;color:#a16207;font:700 12px/1 Arial,sans-serif;">Warning</span>',
+    
   return templates[key] ?? null;
 }
 
@@ -508,12 +508,15 @@ function main(): void {
     meta.vocabularySize
   );
 
-  const app = express();
+ const app = express();
 
-  app.use(helmet());
-  app.use(express.json({ limit: "32kb" }));
-  app.use(express.urlencoded({ extended: false, limit: "8kb" }));
+app.use(helmet());
 
+app.use(express.json({ limit: "32kb" }));
+app.use(express.urlencoded({ extended: false, limit: "8kb" }));
+
+app.use(express.static(RNN_DEV_DIR));
+  
   app.get("/health", (_request, response) => {
     response.json({
       ok: true,
