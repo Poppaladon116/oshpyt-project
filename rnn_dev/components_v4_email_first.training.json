@@ -147,6 +147,46 @@
         "DURATION_SHORT",
         "COMPONENT_END"
       ]
-    }
+    },
+    {
+       "prompt": ["BADGE", "COLOR_BLUE"],
+       "tokens": [
+       "COMPONENT_START",
+       "BADGE",
+       "COLOR_BLUE",
+       "TEXT_NEW",
+       "COMPONENT_END"
+  ]
+},
+{
+       "prompt": ["BADGE", "COLOR_GREEN"],
+       "tokens": [
+       "COMPONENT_START",
+       "BADGE",
+       "COLOR_GREEN",
+       "TEXT_SUCCESS",
+       "COMPONENT_END"
+  ]
+},
+{
+       "prompt": ["BADGE", "COLOR_RED"],
+       "tokens": [
+       "COMPONENT_START",
+       "BADGE",
+       "COLOR_RED",
+       "TEXT_ERROR",
+       "COMPONENT_END"
+  ]
+},
+{
+       "prompt": ["BADGE", "COLOR_YELLOW"],
+       "tokens": [
+       "COMPONENT_START",
+       "BADGE",
+       "COLOR_YELLOW",
+       "TEXT_WARNING",
+       "COMPONENT_END"
+  ]
+}
   ]
 }
